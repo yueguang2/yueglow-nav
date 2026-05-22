@@ -25,6 +25,18 @@ Yueglow Nav 是一个带后台管理能力的个人导航站。它面向个人�
 - Zod
 - Docker standalone deployment
 
+## Project Structure
+
+```text
+src/app                  前台页面、后台页面、API 路由和中转路由
+src/components           通用 UI、站点卡片、主题切换、智能中转弹层
+src/lib                  数据库、认证、表单 Action、链接优选和校验逻辑
+data                     SQLite 数据目录，默认不提交数据库文件
+Dockerfile               生产镜像构建文件
+docker-compose.yml       单机 Docker 部署配置
+.env.example             环境变量示例
+```
+
 ## Requirements
 
 本地开发需要：
@@ -42,6 +54,13 @@ docker compose
 ```
 
 ## Quick Start
+
+克隆项目：
+
+```bash
+git clone git@github.com:yueguang2/yueglow-nav.git
+cd yueglow-nav
+```
 
 安装依赖：
 
@@ -138,6 +157,19 @@ DATA_DIR=/path/to/data npm run start
 
 `.gitignore` 已忽略数据库文件和 WAL/SHM 文件，不会把本地数据提交到 Git。
 
+## Environment Variables
+
+可以参考 `.env.example` 配置：
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `NODE_ENV` | `development` / `production` | 运行环境，生产部署建议使用 `production`。 |
+| `HOSTNAME` | `0.0.0.0` | 服务监听地址，Docker 内默认监听全部网卡。 |
+| `PORT` | `3000` | HTTP 服务端口。 |
+| `DATA_DIR` | `./data` | SQLite 数据目录，Docker 中默认使用 `/app/data`。 |
+
+普通 Node 部署时可以创建 `.env` 文件，也可以直接在启动命令前传入环境变量。
+
 ## Scripts
 
 ```bash
@@ -169,7 +201,7 @@ npm run lint
 普通 Node 部署：
 
 ```bash
-npm install
+npm ci
 npm run build
 npm run start
 ```
@@ -185,6 +217,30 @@ http://localhost:3000
 ```bash
 PORT=3000 npm run start
 ```
+
+如果部署到公网，建议放在 Nginx、Caddy、Traefik 等反向代理后面，并启用 HTTPS。反向代理只需要转发到应用端口即可，例如：
+
+```nginx
+server {
+  listen 80;
+  server_name nav.example.com;
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+生产环境建议：
+
+- 使用强管理员密码。
+- 定期备份 `DATA_DIR` 目录。
+- 为站点配置 HTTPS。
+- 不要把真实数据库文件提交到 Git。
 
 ## Docker
 
@@ -218,6 +274,13 @@ docker compose logs -f
 docker compose down
 ```
 
+更新代码后重新构建：
+
+```bash
+git pull
+docker compose up -d --build
+```
+
 Docker 默认配置：
 
 - 服务名：`yueglow-nav`
@@ -237,10 +300,10 @@ volumes:
 
 ## Backup
 
-备份 SQLite 数据：
+建议优先备份整个数据目录：
 
 ```bash
-cp data/nav-site.db data/nav-site.backup.db
+cp -a data data.backup
 ```
 
 如果服务正在运行，建议同时备份 WAL/SHM 文件，或先停止服务后再备份：
@@ -250,6 +313,16 @@ docker compose down
 cp -a data data.backup
 docker compose up -d
 ```
+
+恢复数据：
+
+```bash
+docker compose down
+cp -a data.backup data
+docker compose up -d
+```
+
+如果只备份单个 SQLite 文件，请确保服务已停止，避免遗漏 WAL/SHM 中尚未合并的数据。
 
 ## GitHub
 
@@ -265,6 +338,12 @@ yueglow-nav
 git@github.com:yueguang2/yueglow-nav.git
 ```
 
+克隆：
+
+```bash
+git clone git@github.com:yueguang2/yueglow-nav.git
+```
+
 推送：
 
 ```bash
@@ -278,7 +357,8 @@ git push
 - 如果部署到公网，建议放在反向代理后面并启用 HTTPS。
 - 后台管理员密码使用哈希保存，不保存明文。
 - 首次启动会自动写入一批示例分类和站点，可在后台删除或修改。
+- 站点链接优选依赖服务端网络环境，不同服务器到目标站点的测速结果可能不同。
 
 ## License
 
-未指定许可证。公开发布前建议补充适合你的开源协议，例如 MIT、Apache-2.0 或保留所有权利。
+本项目基于 MIT License 开源，详见 [LICENSE](./LICENSE)。

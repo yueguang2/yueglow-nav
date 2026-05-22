@@ -10,6 +10,7 @@
 
 # local env files
 .env*
+!.env.example
 
 # sqlite data
 /data/*.db

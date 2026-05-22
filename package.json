@@ -1,7 +1,27 @@
 {
   "name": "yueglow-nav",
   "version": "0.1.0",
+  "description": "A polished self-hosted personal navigation dashboard with admin management, smart link routing, SQLite persistence, and Docker support.",
   "private": true,
+  "author": "yueguang",
+  "license": "MIT",
+  "keywords": [
+    "navigation",
+    "dashboard",
+    "homepage",
+    "bookmark",
+    "self-hosted",
+    "nextjs",
+    "sqlite"
+  ],
+  "homepage": "https://github.com/yueguang2/yueglow-nav#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/yueguang2/yueglow-nav.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yueguang2/yueglow-nav/issues"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
