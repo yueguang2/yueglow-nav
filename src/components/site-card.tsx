@@ -30,12 +30,12 @@ export function SiteCard({
               <h3 className="min-w-0 truncate text-base font-black tracking-tight">{site.name}</h3>
               {site.isFavorite ? <Star className="favorite-icon size-3.5 shrink-0" /> : null}
             </div>
-          <p className="mt-1 line-clamp-2 min-h-12 text-sm leading-6 text-tertiary">{site.description || site.primaryUrl || site.categoryName}</p>
-          {site.linkCount > 1 ? (
-            <div className="mt-3 flex justify-end text-xs text-faint">
-              <span className="chip shrink-0 rounded-full px-2 py-1">{site.linkCount} links</span>
-            </div>
-          ) : null}
+            <p className="mt-1 line-clamp-2 min-h-12 text-sm leading-6 text-tertiary">{site.description || site.primaryUrl || site.categoryName}</p>
+            {site.linkCount > 1 ? (
+              <div className="mt-3 flex justify-end text-xs text-faint">
+                <span className="chip shrink-0 rounded-full px-2 py-1">{site.linkCount} links</span>
+              </div>
+            ) : null}
           </div>
           <ArrowUpRight className="mt-1 size-4 shrink-0 text-faint transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[var(--accent)]" />
         </div>
@@ -47,7 +47,7 @@ export function SiteCard({
     <SmartLink
       siteId={site.id}
       siteName={site.name}
-      className="panel-soft panel-hover group relative overflow-hidden rounded-[1.75rem] p-5 hover:-translate-y-1"
+      className="card-elevated panel-soft panel-hover group relative overflow-hidden rounded-[1.75rem] p-5 hover:-translate-y-1"
       style={style}
     >
       <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[var(--accent)]/45 to-transparent opacity-0 transition group-hover:opacity-100" />
