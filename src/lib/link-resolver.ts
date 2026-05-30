@@ -21,52 +21,96 @@ function cacheKey(siteId: number) {
   return siteId;
 }
 
+function isValidUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return false;
+    }
+
+    const hostname = url.hostname.toLowerCase();
+
+    if (hostname === "localhost" || hostname.endsWith(".localhost")) {
+      return false;
+    }
+
+    const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    const ipv4Match = hostname.match(ipv4Pattern);
+
+    if (ipv4Match) {
+      const octets = ipv4Match.slice(1).map(Number);
+
+      if (octets[0] === 127) return false;
+      if (octets[0] === 10) return false;
+      if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return false;
+      if (octets[0] === 192 && octets[1] === 168) return false;
+      if (octets[0] === 169 && octets[1] === 254) return false;
+      if (octets[0] === 0) return false;
+    }
+
+    if (hostname.startsWith("[") && hostname.includes("::1")) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function probe(link: SiteLink) {
+  if (!isValidUrl(link.url)) {
+    return undefined;
+  }
+
   const startedAt = performance.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const head = await fetch(link.url, {
+    const headPromise = fetch(link.url, {
       method: "HEAD",
       cache: "no-store",
       redirect: "follow",
       signal: controller.signal,
-    });
+    }).then((response) => {
+      if (response.ok || (response.status >= 300 && response.status < 400)) {
+        return { success: true as const, elapsed: performance.now() - startedAt };
+      }
+      return { success: false as const };
+    }).catch(() => ({ success: false as const }));
 
-    if (head.ok || (head.status >= 300 && head.status < 400)) {
-      return { link, elapsed: performance.now() - startedAt };
-    }
-  } catch {
-    // Some sites block HEAD. Fall back to GET below.
-  } finally {
-    clearTimeout(timer);
-  }
-
-  const fallbackController = new AbortController();
-  const fallbackTimer = setTimeout(() => fallbackController.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(link.url, {
+    const getPromise = fetch(link.url, {
       method: "GET",
       cache: "no-store",
       redirect: "follow",
-      signal: fallbackController.signal,
+      signal: controller.signal,
       headers: {
         Range: "bytes=0-0",
       },
-    });
+    }).then((response) => {
+      if (response.ok || response.status === 206 || (response.status >= 300 && response.status < 400)) {
+        return { success: true as const, elapsed: performance.now() - startedAt };
+      }
+      return { success: false as const };
+    }).catch(() => ({ success: false as const }));
 
-    if (response.ok || response.status === 206 || (response.status >= 300 && response.status < 400)) {
-      return { link, elapsed: performance.now() - startedAt };
+    const result = await Promise.race([headPromise, getPromise]);
+
+    if (result.success) {
+      return { link, elapsed: result.elapsed };
     }
-  } catch {
+
+    return undefined;
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error(`Probe failed for ${link.url}:`, error);
+    }
     return undefined;
   } finally {
-    clearTimeout(fallbackTimer);
+    clearTimeout(timer);
   }
-
-  return undefined;
 }
 
 export async function resolveFastestLink(siteId: number, links: SiteLink[]): Promise<string | undefined> {

@@ -1,10 +1,54 @@
-.DS_Store
-.next
+# Dependencies
 node_modules
 npm-debug.log*
-Dockerfile
-docker-compose.yml
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output
+.next
+out
+dist
+build
+
+# Development
 .git
 .gitignore
-data/*.db
-data/*.db-*
+.env*.local
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Testing
+coverage
+.nyc_output
+
+# Data
+data
+*.db
+*.db-shm
+*.db-wal
+
+# Misc
+.DS_Store
+*.pem
+.cache
+.turbo
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+docs
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

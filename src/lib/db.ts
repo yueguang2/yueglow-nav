@@ -25,10 +25,10 @@ function mapCategory(row: Record<string, unknown>): Category {
   };
 }
 
-function mapSite(row: Record<string, unknown>): Site {
-  const links = listSiteLinksForSite(Number(row.id), true);
-  const enabledLinks = links.filter((link) => link.isEnabled);
-  const primaryUrl = enabledLinks[0]?.url ?? links[0]?.url ?? String(row.url ?? "");
+function mapSite(row: Record<string, unknown>, links?: SiteLink[]): Site {
+  const siteLinks = links ?? listSiteLinksForSite(Number(row.id), true);
+  const enabledLinks = siteLinks.filter((link) => link.isEnabled);
+  const primaryUrl = enabledLinks[0]?.url ?? siteLinks[0]?.url ?? String(row.url ?? "");
 
   return {
     id: Number(row.id),
@@ -42,7 +42,7 @@ function mapSite(row: Record<string, unknown>): Site {
     isFavorite: bool(Number(row.is_favorite)),
     isVisible: bool(Number(row.is_visible)),
     sortOrder: Number(row.sort_order),
-    links,
+    links: siteLinks,
     linkCount: enabledLinks.length,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -373,7 +373,30 @@ export function listSites({ includeHidden = false } = {}) {
     )
     .all() as Record<string, unknown>[];
 
-  return rows.map(mapSite);
+  if (rows.length === 0) return [];
+
+  const siteIds = rows.map((row) => Number(row.id));
+  const allLinks = getDb()
+    .prepare(
+      `
+      SELECT *
+      FROM site_links
+      WHERE site_id IN (${siteIds.map(() => "?").join(",")})
+      ORDER BY sort_order ASC, id ASC
+    `,
+    )
+    .all(...siteIds) as Record<string, unknown>[];
+
+  const linksBySiteId = new Map<number, SiteLink[]>();
+  for (const linkRow of allLinks) {
+    const siteId = Number(linkRow.site_id);
+    if (!linksBySiteId.has(siteId)) {
+      linksBySiteId.set(siteId, []);
+    }
+    linksBySiteId.get(siteId)!.push(mapSiteLink(linkRow));
+  }
+
+  return rows.map((row) => mapSite(row, linksBySiteId.get(Number(row.id)) || []));
 }
 
 export function listSiteLinksForSite(siteId: number, includeDisabled = false) {
@@ -424,7 +447,30 @@ export function listFavoriteSites() {
     )
     .all() as Record<string, unknown>[];
 
-  return rows.map(mapSite);
+  if (rows.length === 0) return [];
+
+  const siteIds = rows.map((row) => Number(row.id));
+  const allLinks = getDb()
+    .prepare(
+      `
+      SELECT *
+      FROM site_links
+      WHERE site_id IN (${siteIds.map(() => "?").join(",")})
+      ORDER BY sort_order ASC, id ASC
+    `,
+    )
+    .all(...siteIds) as Record<string, unknown>[];
+
+  const linksBySiteId = new Map<number, SiteLink[]>();
+  for (const linkRow of allLinks) {
+    const siteId = Number(linkRow.site_id);
+    if (!linksBySiteId.has(siteId)) {
+      linksBySiteId.set(siteId, []);
+    }
+    linksBySiteId.get(siteId)!.push(mapSiteLink(linkRow));
+  }
+
+  return rows.map((row) => mapSite(row, linksBySiteId.get(Number(row.id)) || []));
 }
 
 function primaryLink(input: SiteInput) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Loader2, RotateCcw, X, XCircle } from "lucide-react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 
 type ResolveState = "idle" | "loading" | "success" | "error";
@@ -18,6 +18,19 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState("");
   const [targetUrl, setTargetUrl] = useState("");
   const [openBlocked, setOpenBlocked] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (site) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      closeButtonRef.current?.focus();
+    } else if (previousFocusRef.current) {
+      previousFocusRef.current.focus();
+      previousFocusRef.current = null;
+    }
+  }, [site]);
 
   async function resolve(siteInput: { id: number; name: string; fallbackHref: string }) {
     setSite(siteInput);
@@ -74,18 +87,25 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
     <SmartLinkContext.Provider value={{ open: resolve }}>
       {children}
       {site ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-5 backdrop-blur-md">
-          <div className="glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-6 text-[var(--foreground)] shadow-2xl">
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-5 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dialog-title"
+          aria-describedby="dialog-description"
+        >
+          <div ref={dialogRef} className="glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-6 text-[var(--foreground)] shadow-2xl">
             <div className="absolute -right-16 -top-16 size-44 rounded-full bg-[var(--accent)]/18 blur-3xl" />
             <div className="absolute -bottom-20 left-4 size-44 rounded-full bg-[var(--accent-2)]/12 blur-3xl" />
             <button
+              ref={closeButtonRef}
               type="button"
               onClick={() => {
                 setSite(null);
                 setState("idle");
               }}
               className="focus-ring absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-full border border-[var(--line)] bg-[var(--control-bg)] text-[var(--text-secondary)] transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
-              aria-label="关闭"
+              aria-label="关闭对话框"
             >
               <X className="size-4" />
             </button>
@@ -99,15 +119,16 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
                     state === "success" && "border-[var(--success)]",
                     state === "error" && "border-[var(--danger)]",
                   )}
+                  aria-hidden="true"
                 />
-                {state === "loading" ? <Loader2 className="size-9 animate-spin text-[var(--accent)]" /> : null}
-                {state === "success" ? <CheckCircle2 className="size-10 text-[var(--success)]" /> : null}
-                {state === "error" ? <XCircle className="size-10 text-[var(--danger)]" /> : null}
+                {state === "loading" ? <Loader2 className="size-9 animate-spin text-[var(--accent)]" aria-label="加载中" /> : null}
+                {state === "success" ? <CheckCircle2 className="size-10 text-[var(--success)]" aria-label="成功" /> : null}
+                {state === "error" ? <XCircle className="size-10 text-[var(--danger)]" aria-label="错误" /> : null}
               </div>
 
               <p className="mt-5 text-xs font-semibold uppercase tracking-[0.3em] text-faint">Smart Redirect</p>
-              <h2 className="mt-3 text-3xl font-black tracking-[-0.05em]">{site.name}</h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-tertiary">{message}</p>
+              <h2 id="dialog-title" className="mt-3 text-3xl font-black tracking-[-0.05em]">{site.name}</h2>
+              <p id="dialog-description" className="mt-3 max-w-sm text-sm leading-6 text-tertiary">{message}</p>
 
               {targetUrl ? <p className="mt-4 max-w-full truncate rounded-full border border-[var(--line)] bg-[var(--control-bg)] px-3 py-1.5 text-xs text-secondary">{targetUrl}</p> : null}
 
@@ -118,7 +139,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
                     onClick={() => resolve(site)}
                     className="focus-ring inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-foreground)]"
                   >
-                    <RotateCcw className="size-4" />
+                    <RotateCcw className="size-4" aria-hidden="true" />
                     重试
                   </button>
                   <a
@@ -167,18 +188,20 @@ export function SmartLink({
   className,
   style,
   children,
+  ...props
 }: {
   siteId: number;
   siteName: string;
   className?: string;
   style?: React.CSSProperties;
   children: React.ReactNode;
-}) {
+} & React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   const context = useContext(SmartLinkContext);
   const fallbackHref = `/go/${siteId}`;
 
   return (
     <a
+      {...props}
       href={fallbackHref}
       className={className}
       style={style}

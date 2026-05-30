@@ -6,6 +6,8 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Badge, InitialMark, LinkButton } from "@/components/ui";
 import { listCategories, listFavoriteSites, listSites } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 function groupSites() {
   const categories = listCategories();
   const sites = listSites();
