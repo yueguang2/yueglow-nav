@@ -50,10 +50,10 @@ export default async function AdminLayout({
                   key={item.href}
                   href={item.href}
                   className={clsx(
-                    "flex items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-sm font-semibold text-secondary transition hover:border-[var(--line)] hover:bg-[var(--control-bg)] hover:text-[var(--foreground)]",
+                    "focus-ring flex items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-sm font-semibold text-secondary transition-all duration-200 hover:border-[var(--line)] hover:bg-[var(--control-bg)] hover:text-[var(--foreground)] hover:scale-[1.02]",
                   )}
                 >
-                  <Icon className="size-4" />
+                  <Icon className="size-4 transition-transform duration-200 group-hover:scale-110" />
                   {item.label}
                 </a>
               );
@@ -64,12 +64,12 @@ export default async function AdminLayout({
             <ThemeSwitcher compact />
           </div>
 
-          <div className="panel-soft mt-6 rounded-3xl p-4">
+          <div className="panel-soft mt-6 rounded-3xl p-4 transition-all duration-200 hover:bg-[var(--panel)]">
             <p className="text-sm font-semibold">{admin.username}</p>
             <p className="mt-1 text-xs text-faint">当前管理员</p>
             <form action={logoutAction} className="mt-4">
-              <button className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--field-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]">
-                <LogOut className="size-4" />
+              <button className="focus-ring flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--field-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition-all duration-200 hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)] hover:scale-[1.02]">
+                <LogOut className="size-4 transition-transform duration-200 hover:rotate-12" />
                 退出登录
               </button>
             </form>
