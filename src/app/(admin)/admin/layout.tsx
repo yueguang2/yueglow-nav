@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { BarChart3, FolderKanban, Globe2, LayoutDashboard, LogOut } from "lucide-react";
+import { BarChart3, FolderKanban, Globe2, LayoutDashboard, LogOut, Palette } from "lucide-react";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/actions";
 import { getCurrentAdmin } from "@/lib/auth";
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/admin", label: "仪表盘", icon: LayoutDashboard },
   { href: "/admin/categories", label: "分类管理", icon: FolderKanban },
   { href: "/admin/sites", label: "站点管理", icon: Globe2 },
+  { href: "/admin/themes", label: "主题设置", icon: Palette },
 ];
 
 export default async function AdminLayout({

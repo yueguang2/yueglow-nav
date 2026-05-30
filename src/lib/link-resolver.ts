@@ -1,25 +1,14 @@
 import type { SiteLink } from "./types";
 
 const timeoutMs = 2500;
-const cacheTtlMs = 1000 * 60 * 5;
-
-type CacheEntry = {
-  url: string;
-  expiresAt: number;
-};
 
 export type ResolvedLink = {
   ok: boolean;
   url?: string;
-  source: "cache" | "single" | "fastest" | "fallback" | "none";
+  source: "single" | "fastest" | "fallback" | "none";
   message: string;
+  elapsed?: number;
 };
-
-const speedCache = new Map<number, CacheEntry>();
-
-function cacheKey(siteId: number) {
-  return siteId;
-}
 
 function isValidUrl(urlString: string): boolean {
   try {
@@ -42,9 +31,6 @@ function isValidUrl(urlString: string): boolean {
       const octets = ipv4Match.slice(1).map(Number);
 
       if (octets[0] === 127) return false;
-      if (octets[0] === 10) return false;
-      if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return false;
-      if (octets[0] === 192 && octets[1] === 168) return false;
       if (octets[0] === 169 && octets[1] === 254) return false;
       if (octets[0] === 0) return false;
     }
@@ -129,20 +115,7 @@ export async function resolveFastestLinkDetail(siteId: number, links: SiteLink[]
     };
   }
 
-  const key = cacheKey(siteId);
-  const cached = speedCache.get(key);
-
-  if (cached && cached.expiresAt > Date.now() && enabledLinks.some((link) => link.url === cached.url)) {
-    return {
-      ok: true,
-      url: cached.url,
-      source: "cache",
-      message: "已使用近期测速结果",
-    };
-  }
-
   if (enabledLinks.length === 1) {
-    speedCache.set(key, { url: enabledLinks[0].url, expiresAt: Date.now() + cacheTtlMs });
     return {
       ok: true,
       url: enabledLinks[0].url,
@@ -151,18 +124,19 @@ export async function resolveFastestLinkDetail(siteId: number, links: SiteLink[]
     };
   }
 
+  // 并发测速所有链接，不使用缓存
   const results = await Promise.all(enabledLinks.map(probe));
   const fastest = results
     .filter((result): result is { link: SiteLink; elapsed: number } => Boolean(result))
     .sort((a, b) => a.elapsed - b.elapsed)[0];
 
   const url = fastest?.link.url ?? enabledLinks[0].url;
-  speedCache.set(key, { url, expiresAt: Date.now() + cacheTtlMs });
 
   return {
     ok: true,
     url,
     source: fastest ? "fastest" : "fallback",
-    message: fastest ? "已选定最快可用链接" : "测速未通过，使用排序第一的备用链接",
+    message: fastest ? `已选定最快链接 (${Math.round(fastest.elapsed)}ms)` : "测速未通过，使用排序第一的备用链接",
+    elapsed: fastest?.elapsed,
   };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SmartLink } from "./smart-link-overlay";
 import { InitialMark } from "./ui";
 import type { Site } from "@/lib/types";
@@ -15,39 +15,43 @@ export function SearchModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  if (!isOpen) return null;
+
+  return <SearchModalContent sites={sites} onClose={onClose} />;
+}
+
+function SearchModalContent({
+  sites,
+  onClose,
+}: {
+  sites: Site[];
+  onClose: () => void;
+}) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  const filteredSites = query.trim()
-    ? sites.filter((site) => {
-        const searchText = query.toLowerCase();
-        return (
-          site.name.toLowerCase().includes(searchText) ||
-          site.description.toLowerCase().includes(searchText) ||
-          site.categoryName.toLowerCase().includes(searchText) ||
-          site.primaryUrl.toLowerCase().includes(searchText)
-        );
-      })
-    : [];
+  const filteredSites = useMemo(() => {
+    return query.trim()
+      ? sites.filter((site) => {
+          const searchText = query.toLowerCase();
+          return (
+            site.name.toLowerCase().includes(searchText) ||
+            site.description.toLowerCase().includes(searchText) ||
+            site.categoryName.toLowerCase().includes(searchText) ||
+            site.primaryUrl.toLowerCase().includes(searchText)
+          );
+        })
+      : [];
+  }, [query, sites]);
 
   useEffect(() => {
-    if (isOpen) {
-      inputRef.current?.focus();
-      setQuery("");
-      setSelectedIndex(0);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-
       if (e.key === "Escape") {
         onClose();
       } else if (e.key === "ArrowDown") {
@@ -65,7 +69,7 @@ export function SearchModal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, filteredSites, selectedIndex, onClose]);
+  }, [filteredSites, selectedIndex, onClose]);
 
   useEffect(() => {
     if (resultsRef.current && filteredSites.length > 0) {
@@ -76,15 +80,13 @@ export function SearchModal({
     }
   }, [selectedIndex, filteredSites.length]);
 
-  if (!isOpen) return null;
-
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-5 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="glass relative w-full max-w-2xl overflow-hidden rounded-[2rem] text-[var(--foreground)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+        className="clay-card relative w-full max-w-2xl overflow-hidden rounded-[2rem] text-[var(--foreground)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 border-b border-[var(--line)] px-6 py-4">
@@ -93,13 +95,16 @@ export function SearchModal({
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSelectedIndex(0);
+            }}
             placeholder="搜索站点、分类或描述..."
             className="flex-1 bg-transparent text-base outline-none placeholder:text-[var(--muted)]"
           />
           <button
             onClick={onClose}
-            className="focus-ring grid size-8 place-items-center rounded-full border border-[var(--line)] bg-[var(--control-bg)] text-[var(--text-secondary)] transition-all duration-200 hover:scale-110 hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
+            className="focus-ring clay-panel grid size-8 place-items-center rounded-full text-[var(--text-secondary)] transition-all duration-300 hover:scale-110 hover:shadow-[var(--shadow-md)] hover:text-[var(--foreground)]"
             aria-label="关闭搜索"
           >
             <X className="size-4" />
@@ -126,10 +131,11 @@ export function SearchModal({
                   key={site.id}
                   siteId={site.id}
                   siteName={site.name}
-                  className={`panel-soft group flex items-center gap-3 rounded-2xl p-3 transition-all duration-200 ${
+                  linkCount={site.linkCount}
+                  className={`clay-panel group flex items-center gap-3 rounded-[1.25rem] p-3 transition-all duration-300 ${
                     index === selectedIndex
-                      ? "border-[var(--accent)] bg-[var(--panel-strong)] scale-[1.02]"
-                      : "border-transparent hover:border-[var(--line)] hover:bg-[var(--control-bg)]"
+                      ? "shadow-[var(--shadow-md)] scale-[1.02]"
+                      : "hover:shadow-[var(--shadow-md)]"
                   }`}
                   onClick={onClose}
                 >

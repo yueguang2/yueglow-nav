@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { getActiveTheme } from "@/lib/db";
+import { generateThemeCSS } from "@/lib/theme-utils";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,17 +34,83 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const activeTheme = getActiveTheme();
+
   const themeScript = `
     (() => {
-      const stored = localStorage.getItem("nav-theme");
-      const preference = stored === "light" || stored === "dark"
-        ? stored
-        : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-      localStorage.setItem("nav-theme", preference);
-      const resolved = preference;
-      document.documentElement.dataset.themePreference = preference;
-      document.documentElement.dataset.theme = resolved;
-      document.documentElement.style.colorScheme = resolved;
+      const storageKey = "nav-theme";
+      const validTheme = (value) => value === "light" || value === "dark";
+      const systemTheme = () => {
+        try {
+          return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        } catch {
+          return "dark";
+        }
+      };
+      const readStoredTheme = () => {
+        try {
+          return localStorage.getItem(storageKey);
+        } catch {
+          return null;
+        }
+      };
+      const writeStoredTheme = (value) => {
+        try {
+          localStorage.setItem(storageKey, value);
+        } catch {}
+      };
+      const applyTheme = (value) => {
+        document.documentElement.dataset.themePreference = value;
+        document.documentElement.dataset.theme = value;
+        document.documentElement.style.colorScheme = value;
+      };
+      const syncSwitchers = (value) => {
+        document.documentElement.dataset.themeCurrent = value;
+        document.querySelectorAll("[data-theme-switcher]").forEach((switcher) => {
+          switcher.querySelectorAll("[data-theme-value]").forEach((button) => {
+            const active = button.getAttribute("data-theme-value") === value;
+            button.setAttribute("aria-pressed", active ? "true" : "false");
+            button.setAttribute("data-active", active ? "true" : "false");
+          });
+        });
+      };
+      const setTheme = (value) => {
+        if (!validTheme(value)) {
+          return;
+        }
+
+        writeStoredTheme(value);
+        applyTheme(value);
+        syncSwitchers(value);
+      };
+      const stored = readStoredTheme();
+      const preference = validTheme(stored) ? stored : systemTheme();
+
+      setTheme(preference);
+
+      document.addEventListener("click", (event) => {
+        const target = event.target instanceof Element
+          ? event.target.closest("[data-theme-switcher] [data-theme-value]")
+          : null;
+
+        if (!target) {
+          return;
+        }
+
+        const nextTheme = target.getAttribute("data-theme-value");
+
+        if (!validTheme(nextTheme)) {
+          return;
+        }
+
+        setTheme(nextTheme);
+      });
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => syncSwitchers(preference), { once: true });
+      } else {
+        syncSwitchers(preference);
+      }
     })();
   `;
 
@@ -50,6 +118,9 @@ export default function RootLayout({
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {activeTheme && (
+          <style dangerouslySetInnerHTML={{ __html: generateThemeCSS(activeTheme) }} />
+        )}
       </head>
       <body>{children}</body>
     </html>

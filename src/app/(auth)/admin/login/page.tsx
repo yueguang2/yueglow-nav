@@ -21,8 +21,8 @@ export default async function LoginPage() {
   return (
     <main className="grid min-h-screen place-items-center px-5 py-10">
       <div className="glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-6 sm:p-8">
-        <div className="absolute -right-16 -top-16 size-44 rounded-full bg-cyan-300/20 blur-3xl" />
-        <div className="absolute -bottom-20 left-6 size-44 rounded-full bg-lime-200/12 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 -top-16 size-44 rounded-full bg-cyan-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-6 size-44 rounded-full bg-lime-200/12 blur-3xl" />
         <div className="relative">
           <div className="flex items-center justify-between gap-3">
             <Link href="/" className="text-xs font-semibold uppercase tracking-[0.36em] text-faint">

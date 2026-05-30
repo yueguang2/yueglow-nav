@@ -57,3 +57,44 @@ export const emptyActionState: ActionState = {
   ok: false,
   message: "",
 };
+
+const hexColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-fA-F]{6}$/, "请输入有效的颜色值（如 #ffffff）")
+  .or(
+    z
+      .string()
+      .trim()
+      .regex(/^rgba?\([^)]+\)$/, "请输入有效的颜色值（如 rgba(255, 255, 255, 0.5)）")
+  );
+
+export const themeSchema = z.object({
+  name: z.string().trim().min(1, "请输入主题名称").max(40, "主题名称不能超过 40 个字符"),
+  slug: z
+    .string()
+    .trim()
+    .min(1, "请输入主题标识符")
+    .max(40, "主题标识符不能超过 40 个字符")
+    .regex(/^[a-z0-9-]+$/, "主题标识符只能包含小写字母、数字和连字符"),
+  description: z.string().trim().max(200, "描述不能超过 200 个字符").default(""),
+  darkBackground: hexColorSchema,
+  darkForeground: hexColorSchema,
+  darkAccent: hexColorSchema,
+  darkAccent2: hexColorSchema,
+  darkPanel: hexColorSchema,
+  darkPanelStrong: hexColorSchema,
+  darkCardBg: hexColorSchema,
+  darkFieldBg: hexColorSchema,
+  lightBackground: hexColorSchema,
+  lightForeground: hexColorSchema,
+  lightAccent: hexColorSchema,
+  lightAccent2: hexColorSchema,
+  lightPanel: hexColorSchema,
+  lightPanelStrong: hexColorSchema,
+  lightCardBg: hexColorSchema,
+  lightFieldBg: hexColorSchema,
+  useBackdropBlur: z.coerce.boolean().default(false),
+  useGradientGlow: z.coerce.boolean().default(true),
+  sortOrder: z.coerce.number().int().min(0).max(9999).default(100),
+});

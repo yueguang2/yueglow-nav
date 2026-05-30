@@ -4,20 +4,25 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { clearSession, requireAdmin, setSession } from "./auth";
 import {
+  activateTheme,
   countSitesByCategory,
   createAdmin,
   createCategory,
   createSite,
+  createTheme,
   deleteCategory,
   deleteSite,
+  deleteTheme,
   getAdminByUsername,
   getAdminCount,
   getCategoryById,
+  getThemeById,
   updateCategory,
   updateSite,
+  updateTheme,
 } from "./db";
 import { hashPassword, verifyPassword } from "./crypto";
-import { type ActionState, categorySchema, loginSchema, setupSchema, siteSchema } from "./validation";
+import { type ActionState, categorySchema, loginSchema, setupSchema, siteSchema, themeSchema } from "./validation";
 
 function parseCheckbox(formData: FormData, key: string) {
   return formData.has(key);
@@ -184,4 +189,82 @@ export async function deleteSiteAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/admin");
   redirect("/admin/sites?message=site-deleted");
+}
+
+export async function saveThemeAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+
+  const parsed = themeSchema.safeParse({
+    name: formData.get("name"),
+    slug: formData.get("slug"),
+    description: formData.get("description"),
+    darkBackground: formData.get("darkBackground"),
+    darkForeground: formData.get("darkForeground"),
+    darkAccent: formData.get("darkAccent"),
+    darkAccent2: formData.get("darkAccent2"),
+    darkPanel: formData.get("darkPanel"),
+    darkPanelStrong: formData.get("darkPanelStrong"),
+    darkCardBg: formData.get("darkCardBg"),
+    darkFieldBg: formData.get("darkFieldBg"),
+    lightBackground: formData.get("lightBackground"),
+    lightForeground: formData.get("lightForeground"),
+    lightAccent: formData.get("lightAccent"),
+    lightAccent2: formData.get("lightAccent2"),
+    lightPanel: formData.get("lightPanel"),
+    lightPanelStrong: formData.get("lightPanelStrong"),
+    lightCardBg: formData.get("lightCardBg"),
+    lightFieldBg: formData.get("lightFieldBg"),
+    useBackdropBlur: parseCheckbox(formData, "useBackdropBlur"),
+    useGradientGlow: parseCheckbox(formData, "useGradientGlow"),
+    sortOrder: formData.get("sortOrder"),
+  });
+
+  if (!parsed.success) {
+    return error(parsed.error.issues[0]?.message ?? "保存主题失败");
+  }
+
+  const id = Number(formData.get("id"));
+
+  try {
+    if (id > 0) {
+      updateTheme(id, { ...parsed.data, isActive: false });
+    } else {
+      createTheme({ ...parsed.data, isActive: false });
+    }
+  } catch (err) {
+    return error(err instanceof Error && err.message.includes("UNIQUE") ? "主题名称或标识符已存在" : "保存主题失败");
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  return success(id > 0 ? "主题已更新" : "主题已创建");
+}
+
+export async function deleteThemeAction(formData: FormData) {
+  await requireAdmin();
+
+  const id = Number(formData.get("id"));
+  const theme = getThemeById(id);
+
+  if (!theme || theme.isActive) {
+    revalidatePath("/admin");
+    return;
+  }
+
+  deleteTheme(id);
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin/themes");
+}
+
+export async function activateThemeAction(formData: FormData) {
+  await requireAdmin();
+
+  const id = Number(formData.get("id"));
+  activateTheme(id);
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect(`/admin/themes?activated=${id}`);
 }

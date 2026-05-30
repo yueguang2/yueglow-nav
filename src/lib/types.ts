@@ -70,3 +70,32 @@ export type Session = {
   expiresAt: string;
   createdAt: string;
 };
+
+export type Theme = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  darkBackground: string;
+  darkForeground: string;
+  darkAccent: string;
+  darkAccent2: string;
+  darkPanel: string;
+  darkPanelStrong: string;
+  darkCardBg: string;
+  darkFieldBg: string;
+  lightBackground: string;
+  lightForeground: string;
+  lightAccent: string;
+  lightAccent2: string;
+  lightPanel: string;
+  lightPanelStrong: string;
+  lightCardBg: string;
+  lightFieldBg: string;
+  useBackdropBlur: boolean;
+  useGradientGlow: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};

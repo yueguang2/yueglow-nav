@@ -1,6 +1,6 @@
 "use client";
 
-import { Compass, Layers3, Search, Sparkles } from "lucide-react";
+import { Compass, Layers3, Search } from "lucide-react";
 import Link from "next/link";
 import { SmartLinkProvider } from "@/components/smart-link-overlay";
 import { SearchModal, useSearchModal } from "@/components/search-modal";
@@ -37,74 +37,54 @@ export function HomePage({
       <SmartLinkProvider>
         <SearchModal sites={allSites} isOpen={isOpen} onClose={close} />
         <section className="mx-auto flex w-full max-w-7xl flex-col gap-10">
-          <header className="reveal glass relative overflow-hidden rounded-[2.25rem] px-6 py-6 sm:px-8 lg:px-10">
-            <div className="absolute -right-24 -top-24 size-72 rounded-full bg-cyan-300/16 blur-3xl" />
-            <div className="absolute -bottom-28 left-1/3 size-72 rounded-full bg-lime-200/10 blur-3xl" />
+          <header className="reveal flex flex-wrap items-center justify-between gap-4">
+            <Link href="/" className="flex items-center gap-3">
+              <span className="brand-mark grid size-11 place-items-center rounded-2xl">
+                <Compass className="size-5" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold uppercase tracking-[0.36em] text-faint">Yueglow</span>
+                <span className="block text-lg font-black tracking-tight">Personal Nav</span>
+              </span>
+            </Link>
 
-            <nav className="relative z-10 flex flex-wrap items-center justify-between gap-4">
-              <Link href="/" className="flex items-center gap-3">
-                <span className="brand-mark grid size-11 place-items-center rounded-2xl">
-                  <Compass className="size-5" />
-                </span>
-                <span>
-                  <span className="block text-sm font-semibold uppercase tracking-[0.36em] text-faint">Yueglow</span>
-                  <span className="block text-lg font-black tracking-tight">Personal Nav</span>
-                </span>
-              </Link>
-
-              <div className="flex items-center gap-3">
-                <ThemeSwitcher />
-                <LinkButton href="/admin" variant="secondary">
-                  后台管理
-                </LinkButton>
-              </div>
-            </nav>
-
-            <div className="relative z-10 grid gap-8 pt-16 lg:grid-cols-[1.12fr_0.88fr] lg:items-end">
-              <div className="max-w-3xl">
-                <Badge className="mb-5">
-                  <Sparkles className="mr-2 size-3.5 text-[var(--accent-2)]" />
-                  Curated workspace directory
-                </Badge>
-                <h1 className="text-5xl font-black tracking-[-0.08em] text-[var(--foreground)] sm:text-7xl lg:text-8xl">
-                  你的站点，
-                  <span className="block bg-gradient-to-r from-[var(--accent)] via-[var(--foreground)] to-[var(--accent-2)] bg-clip-text text-transparent">
-                    有序发光。
-                  </span>
-                </h1>
-                <p className="mt-6 max-w-2xl text-base leading-8 text-secondary sm:text-lg">
-                  将常用入口、开发文档、AI 工具和设计灵感收束到一个高级感工作台。后台可持续维护，前台保持纯粹、高效、漂亮。
-                </p>
-              </div>
-
-              <div className="surface rounded-[2rem] p-4">
-                <button
-                  onClick={open}
-                  className="panel-soft panel-hover focus-ring flex w-full items-center gap-3 rounded-3xl px-4 py-3 text-left text-tertiary transition-all duration-200"
-                >
-                  <Search className="size-5" />
-                  <span className="flex-1 text-sm">快速定位 {allSites.length} 个站点入口</span>
-                  <kbd className="chip hidden shrink-0 rounded-lg px-2 py-1 text-xs sm:block">⌘K</kbd>
-                </button>
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  <div className="panel-soft rounded-3xl p-4">
-                    <p className="text-3xl font-black">{favoriteSites.length}</p>
-                    <p className="mt-1 text-xs text-tertiary">常用站点</p>
-                  </div>
-                  <div className="panel-soft rounded-3xl p-4">
-                    <p className="text-3xl font-black">{categories.length}</p>
-                    <p className="mt-1 text-xs text-tertiary">分类</p>
-                  </div>
-                  <div className="panel-soft rounded-3xl p-4">
-                    <p className="text-3xl font-black">{allSites.length}</p>
-                    <p className="mt-1 text-xs text-tertiary">站点</p>
-                  </div>
-                </div>
-              </div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <ThemeSwitcher />
+              <LinkButton href="/admin" variant="secondary" className="whitespace-nowrap">
+                后台管理
+              </LinkButton>
             </div>
           </header>
 
-          <section className="reveal grid gap-4 [animation-delay:120ms]">
+          <section className="reveal grid gap-4 [animation-delay:80ms]">
+            <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+              <button
+                onClick={open}
+                className="clay-panel panel-hover focus-ring flex items-center gap-3 rounded-[1.5rem] px-5 py-4 text-left text-tertiary transition-all duration-300"
+              >
+                <Search className="size-5" />
+                <span className="flex-1 text-sm font-medium">快速定位 {allSites.length} 个站点入口</span>
+                <kbd className="chip hidden shrink-0 rounded-lg px-2 py-1 text-xs sm:block">⌘K</kbd>
+              </button>
+
+              <div className="grid grid-cols-3 gap-3 lg:w-80">
+                <div className="clay-panel rounded-[1.25rem] p-3 text-center">
+                  <p className="text-2xl font-black">{favoriteSites.length}</p>
+                  <p className="mt-1 text-xs text-tertiary">常用</p>
+                </div>
+                <div className="clay-panel rounded-[1.25rem] p-3 text-center">
+                  <p className="text-2xl font-black">{categories.length}</p>
+                  <p className="mt-1 text-xs text-tertiary">分类</p>
+                </div>
+                <div className="clay-panel rounded-[1.25rem] p-3 text-center">
+                  <p className="text-2xl font-black">{allSites.length}</p>
+                  <p className="mt-1 text-xs text-tertiary">站点</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="reveal grid gap-4 [animation-delay:160ms]">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <Badge>Favorites</Badge>
@@ -125,7 +105,7 @@ export function HomePage({
             </div>
           </section>
 
-          <section className="reveal grid gap-6 [animation-delay:220ms]">
+          <section className="reveal grid gap-6 [animation-delay:240ms]">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <Badge>
@@ -149,7 +129,7 @@ export function HomePage({
 
             <div className="grid gap-5">
               {categories.map((category) => (
-                <section key={category.id} id={`category-${category.id}`} className="glass rounded-[2rem] p-5 sm:p-6">
+                <section key={category.id} id={`category-${category.id}`} className="clay-card rounded-[2rem] p-5 sm:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--line)] pb-5">
                     <div className="flex items-start gap-4">
                       <InitialMark label={category.icon || category.name} />

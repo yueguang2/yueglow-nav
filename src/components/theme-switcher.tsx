@@ -11,6 +11,13 @@ const modes: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
   { value: "dark", label: "深色", icon: Moon },
 ];
 
+const reactActiveClassName = "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[0_8px_24px_color-mix(in_srgb,var(--accent)_22%,transparent)]";
+const nativeActiveClassName = "data-[active=true]:bg-[var(--accent)] data-[active=true]:text-[var(--accent-foreground)] data-[active=true]:shadow-[0_8px_24px_color-mix(in_srgb,var(--accent)_22%,transparent)]";
+const inactiveClassName = "text-[var(--muted)] hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]";
+
+const THEME_STORAGE_KEY = "nav-theme";
+const THEME_CHANGE_EVENT = "nav-theme-change";
+
 function applyTheme(value: ThemePreference) {
   const root = document.documentElement;
 
@@ -20,30 +27,54 @@ function applyTheme(value: ThemePreference) {
 }
 
 function systemTheme(): ThemePreference {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  if (typeof window === "undefined") return "dark";
+
+  try {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  } catch {
+    return "dark";
+  }
 }
 
 function normalizeTheme(value: string | null | undefined): ThemePreference {
   return value === "light" || value === "dark" ? value : systemTheme();
 }
 
-function initialTheme(): ThemePreference {
-  if (typeof window === "undefined") {
-    return "light";
+function storedTheme(): string | null {
+  try {
+    return window.localStorage.getItem(THEME_STORAGE_KEY);
+  } catch {
+    return null;
   }
+}
 
-  const initial = normalizeTheme(document.documentElement.dataset.theme ?? window.localStorage.getItem("nav-theme"));
-  window.localStorage.setItem("nav-theme", initial);
-  applyTheme(initial);
-  return initial;
+function persistTheme(value: ThemePreference) {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, value);
+  } catch {
+    // The DOM theme still changes even if storage is unavailable.
+  }
+}
+
+function currentTheme(): ThemePreference {
+  if (typeof window === "undefined") return "dark";
+
+  return normalizeTheme(storedTheme() || document.documentElement.dataset.theme);
 }
 
 export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
-  const [theme, setTheme] = useState<ThemePreference>(initialTheme);
+  const [theme, setTheme] = useState<ThemePreference | null>(null);
 
   useEffect(() => {
-    const listener = (event: StorageEvent) => {
-      if (event.key !== "nav-theme") {
+    const frame = window.requestAnimationFrame(() => {
+      const initial = currentTheme();
+
+      setTheme(initial);
+      applyTheme(initial);
+    });
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== THEME_STORAGE_KEY) {
         return;
       }
 
@@ -52,18 +83,39 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
       applyTheme(nextTheme);
     };
 
-    window.addEventListener("storage", listener);
-    return () => window.removeEventListener("storage", listener);
+    const handleLocalChange = (event: Event) => {
+      const nextTheme = (event as CustomEvent<ThemePreference>).detail;
+
+      if (nextTheme === "light" || nextTheme === "dark") {
+        setTheme(nextTheme);
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(THEME_CHANGE_EVENT, handleLocalChange);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(THEME_CHANGE_EVENT, handleLocalChange);
+    };
   }, []);
 
   function updateTheme(value: ThemePreference) {
-    window.localStorage.setItem("nav-theme", value);
     setTheme(value);
+    persistTheme(value);
     applyTheme(value);
+    window.dispatchEvent(new CustomEvent<ThemePreference>(THEME_CHANGE_EVENT, { detail: value }));
   }
 
   return (
-    <div className={clsx("inline-flex rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] p-1", compact && "w-full")}>
+    <div
+      role="radiogroup"
+      data-theme-switcher
+      data-theme-switcher-version="native-fallback-v1"
+      className={clsx("inline-flex rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] p-1", compact && "w-full")}
+      suppressHydrationWarning
+    >
       {modes.map((mode) => {
         const Icon = mode.icon;
         const active = theme === mode.value;
@@ -72,16 +124,21 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
           <button
             key={mode.value}
             type="button"
+            data-theme-value={mode.value}
+            data-active={theme === null ? undefined : active ? "true" : "false"}
             onClick={() => updateTheme(mode.value)}
             className={clsx(
-              "focus-ring inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition",
+              "inline-flex cursor-pointer touch-manipulation select-none items-center justify-center rounded-xl px-4 py-2.5 text-xs font-semibold transition-all",
               compact && "flex-1",
-              active ? "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[0_8px_24px_color-mix(in_srgb,var(--accent)_22%,transparent)]" : "text-[var(--muted)] hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]",
+              nativeActiveClassName,
+              active && reactActiveClassName,
+              !active && inactiveClassName,
             )}
+            aria-label={mode.label}
             aria-pressed={active}
+            suppressHydrationWarning
           >
-            <Icon className="size-3.5" />
-            {mode.label}
+            <Icon className="size-4" />
           </button>
         );
       })}

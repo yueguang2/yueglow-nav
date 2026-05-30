@@ -7,14 +7,14 @@ import clsx from "clsx";
 type ResolveState = "idle" | "loading" | "success" | "error";
 
 type SmartLinkContextValue = {
-  open: (site: { id: number; name: string; fallbackHref: string }) => void;
+  open: (site: { id: number; name: string; fallbackHref: string; linkCount?: number }) => void;
 };
 
 const SmartLinkContext = createContext<SmartLinkContextValue | null>(null);
 
 export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<ResolveState>("idle");
-  const [site, setSite] = useState<{ id: number; name: string; fallbackHref: string } | null>(null);
+  const [site, setSite] = useState<{ id: number; name: string; fallbackHref: string; linkCount?: number } | null>(null);
   const [message, setMessage] = useState("");
   const [targetUrl, setTargetUrl] = useState("");
   const [openBlocked, setOpenBlocked] = useState(false);
@@ -32,10 +32,10 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
     }
   }, [site]);
 
-  async function resolve(siteInput: { id: number; name: string; fallbackHref: string }) {
+  async function resolve(siteInput: { id: number; name: string; fallbackHref: string; linkCount?: number }) {
     setSite(siteInput);
     setState("loading");
-    setMessage("正在并发测速，优选最快可用链接...");
+    setMessage(siteInput.linkCount === 1 ? "正在打开链接..." : "正在并发测速，优选最快可用链接...");
     setTargetUrl("");
     setOpenBlocked(false);
 
@@ -50,6 +50,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
         ok?: boolean;
         url?: string;
         message?: string;
+        linkCount?: number;
       };
 
       if (!response.ok || !data.ok || !data.url) {
@@ -69,14 +70,12 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        setMessage("已在新标签打开，当前页面已保留。");
-
         window.setTimeout(() => {
           setSite(null);
           setState("idle");
           setTargetUrl("");
-        }, 900);
-      }, 650);
+        }, 200);
+      }, 100);
     } catch (error) {
       setState("error");
       setMessage(error instanceof Error ? error.message : "测速失败，请稍后重试");
@@ -94,9 +93,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
           aria-labelledby="dialog-title"
           aria-describedby="dialog-description"
         >
-          <div ref={dialogRef} className="glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-6 text-[var(--foreground)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-            <div className="absolute -right-16 -top-16 size-44 rounded-full bg-[var(--accent)]/18 blur-3xl animate-pulse" style={{ animationDuration: '3s' }} />
-            <div className="absolute -bottom-20 left-4 size-44 rounded-full bg-[var(--accent-2)]/12 blur-3xl animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }} />
+          <div ref={dialogRef} className="clay-card relative w-full max-w-md overflow-hidden rounded-[2rem] p-6 text-[var(--foreground)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <button
               ref={closeButtonRef}
               type="button"
@@ -104,7 +101,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
                 setSite(null);
                 setState("idle");
               }}
-              className="focus-ring absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-full border border-[var(--line)] bg-[var(--control-bg)] text-[var(--text-secondary)] transition-all duration-200 hover:scale-110 hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
+              className="focus-ring absolute right-4 top-4 z-10 clay-panel grid size-9 place-items-center rounded-full text-[var(--text-secondary)] transition-all duration-300 hover:scale-110 hover:shadow-[var(--shadow-md)] hover:text-[var(--foreground)]"
               aria-label="关闭对话框"
             >
               <X className="size-4" />
@@ -130,21 +127,21 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
               <h2 id="dialog-title" className="mt-3 text-3xl font-black tracking-[-0.05em]">{site.name}</h2>
               <p id="dialog-description" className="mt-3 max-w-sm text-sm leading-6 text-tertiary">{message}</p>
 
-              {targetUrl ? <p className="mt-4 max-w-full truncate rounded-full border border-[var(--line)] bg-[var(--control-bg)] px-3 py-1.5 text-xs text-secondary">{targetUrl}</p> : null}
+              {targetUrl ? <p className="mt-4 max-w-full truncate rounded-full bg-[var(--panel)] px-3 py-1.5 text-xs text-secondary shadow-[var(--shadow-subtle)]">{targetUrl}</p> : null}
 
               {state === "error" ? (
                 <div className="mt-6 flex gap-3">
                   <button
                     type="button"
                     onClick={() => resolve(site)}
-                    className="focus-ring inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-foreground)]"
+                    className="clay-button focus-ring inline-flex items-center gap-2 text-sm font-semibold"
                   >
                     <RotateCcw className="size-4" aria-hidden="true" />
                     重试
                   </button>
                   <a
                     href={site.fallbackHref}
-                    className="focus-ring inline-flex items-center rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)]"
+                    className="focus-ring clay-panel inline-flex items-center rounded-full px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] transition-all duration-300 hover:shadow-[var(--shadow-md)]"
                   >
                     使用兜底跳转
                   </a>
@@ -157,7 +154,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
                     href={targetUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="focus-ring inline-flex items-center rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-foreground)]"
+                    className="clay-button focus-ring inline-flex items-center text-sm font-semibold"
                   >
                     手动打开
                   </a>
@@ -168,7 +165,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
                       setState("idle");
                       setTargetUrl("");
                     }}
-                    className="focus-ring inline-flex items-center rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)]"
+                    className="focus-ring clay-panel inline-flex items-center rounded-full px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] transition-all duration-300 hover:shadow-[var(--shadow-md)]"
                   >
                     关闭
                   </button>
@@ -185,6 +182,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
 export function SmartLink({
   siteId,
   siteName,
+  linkCount,
   className,
   style,
   children,
@@ -192,6 +190,7 @@ export function SmartLink({
 }: {
   siteId: number;
   siteName: string;
+  linkCount?: number;
   className?: string;
   style?: React.CSSProperties;
   children: React.ReactNode;
@@ -211,7 +210,13 @@ export function SmartLink({
         }
 
         event.preventDefault();
-        context.open({ id: siteId, name: siteName, fallbackHref });
+
+        if (linkCount === 1) {
+          window.open(fallbackHref, "_blank", "noopener,noreferrer");
+          return;
+        }
+
+        context.open({ id: siteId, name: siteName, fallbackHref, linkCount });
       }}
     >
       {children}

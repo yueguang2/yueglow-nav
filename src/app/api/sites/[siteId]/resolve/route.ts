@@ -44,5 +44,6 @@ export async function GET(
     url: result.url,
     source: result.source,
     message: result.message,
+    linkCount: site.links.filter((link) => link.isEnabled).length,
   });
 }

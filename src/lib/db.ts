@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
-import type { AdminUser, Category, Session, Site, SiteInput, SiteLink } from "./types";
+import type { AdminUser, Category, Session, Site, SiteInput, SiteLink, Theme } from "./types";
 
 const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(process.cwd(), "data");
 const dbPath = path.join(dataDir, "nav-site.db");
@@ -57,6 +57,37 @@ function mapSiteLink(row: Record<string, unknown>): SiteLink {
     url: String(row.url),
     sortOrder: Number(row.sort_order),
     isEnabled: bool(Number(row.is_enabled)),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function mapTheme(row: Record<string, unknown>): Theme {
+  return {
+    id: Number(row.id),
+    name: String(row.name),
+    slug: String(row.slug),
+    description: String(row.description ?? ""),
+    darkBackground: String(row.dark_background),
+    darkForeground: String(row.dark_foreground),
+    darkAccent: String(row.dark_accent),
+    darkAccent2: String(row.dark_accent_2),
+    darkPanel: String(row.dark_panel),
+    darkPanelStrong: String(row.dark_panel_strong),
+    darkCardBg: String(row.dark_card_bg),
+    darkFieldBg: String(row.dark_field_bg),
+    lightBackground: String(row.light_background),
+    lightForeground: String(row.light_foreground),
+    lightAccent: String(row.light_accent),
+    lightAccent2: String(row.light_accent_2),
+    lightPanel: String(row.light_panel),
+    lightPanelStrong: String(row.light_panel_strong),
+    lightCardBg: String(row.light_card_bg),
+    lightFieldBg: String(row.light_field_bg),
+    useBackdropBlur: bool(Number(row.use_backdrop_blur)),
+    useGradientGlow: bool(Number(row.use_gradient_glow)),
+    isActive: bool(Number(row.is_active)),
+    sortOrder: Number(row.sort_order),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -119,6 +150,35 @@ function migrate(database: Database.Database) {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS themes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      slug TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL DEFAULT '',
+      dark_background TEXT NOT NULL,
+      dark_foreground TEXT NOT NULL,
+      dark_accent TEXT NOT NULL,
+      dark_accent_2 TEXT NOT NULL,
+      dark_panel TEXT NOT NULL,
+      dark_panel_strong TEXT NOT NULL,
+      dark_card_bg TEXT NOT NULL,
+      dark_field_bg TEXT NOT NULL,
+      light_background TEXT NOT NULL,
+      light_foreground TEXT NOT NULL,
+      light_accent TEXT NOT NULL,
+      light_accent_2 TEXT NOT NULL,
+      light_panel TEXT NOT NULL,
+      light_panel_strong TEXT NOT NULL,
+      light_card_bg TEXT NOT NULL,
+      light_field_bg TEXT NOT NULL,
+      use_backdrop_blur INTEGER NOT NULL DEFAULT 0,
+      use_gradient_glow INTEGER NOT NULL DEFAULT 1,
+      is_active INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 100,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   const sitesWithoutLinks = database
@@ -145,6 +205,86 @@ function migrate(database: Database.Database) {
     });
 
     transaction();
+  }
+
+  // 初始化预设主题
+  const themeCount = database.prepare("SELECT COUNT(*) as count FROM themes").get() as { count: number };
+
+  if (themeCount.count === 0) {
+    const insertTheme = database.prepare(`
+      INSERT INTO themes (
+        name, slug, description,
+        dark_background, dark_foreground, dark_accent, dark_accent_2,
+        dark_panel, dark_panel_strong, dark_card_bg, dark_field_bg,
+        light_background, light_foreground, light_accent, light_accent_2,
+        light_panel, light_panel_strong, light_card_bg, light_field_bg,
+        use_backdrop_blur, use_gradient_glow, is_active, sort_order
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const themeTransaction = database.transaction(() => {
+      // Claymorphism 主题（当前激活）
+      insertTheme.run(
+        "Claymorphism", "clay", "黏土拟态风格，实心背景和浮雕阴影",
+        "#080b12", "#eef4ff", "#76e4f7", "#d7ff72",
+        "#151921", "#1d2230", "#0f1218", "#0a0d14",
+        "#f4f0e8", "#101620", "#0f6f7f", "#7a5f00",
+        "#e8e4dc", "#ddd9d1", "#f0ece4", "#f8f4ec",
+        0, 1, 1, 10
+      );
+
+      // Glassmorphism 主题
+      insertTheme.run(
+        "Glassmorphism", "glass", "玻璃拟态风格，半透明背景和模糊效果",
+        "#080b12", "#eef4ff", "#76e4f7", "#d7ff72",
+        "rgba(255, 255, 255, 0.08)", "rgba(255, 255, 255, 0.14)", "rgba(8, 11, 18, 0.58)", "rgba(2, 6, 23, 0.45)",
+        "#f4f0e8", "#101620", "#0f6f7f", "#7a5f00",
+        "rgba(255, 255, 255, 0.62)", "rgba(255, 255, 255, 0.88)", "rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.72)",
+        1, 1, 0, 20
+      );
+
+      // Ocean Blue 主题
+      insertTheme.run(
+        "Ocean Blue", "ocean", "深海蓝调，沉稳专业的配色方案",
+        "#0a1628", "#e8f4f8", "#4fc3f7", "#26c6da",
+        "#1a2332", "#243447", "#121e2e", "#0d1621",
+        "#f0f4f8", "#1a2332", "#0277bd", "#0097a7",
+        "#e3eaf0", "#d8dfe6", "#eef2f6", "#f5f7fa",
+        0, 1, 0, 30
+      );
+
+      // Purple Dream 主题
+      insertTheme.run(
+        "Purple Dream", "purple", "紫色梦幻，优雅神秘的视觉体验",
+        "#1a0d2e", "#f3e8ff", "#b794f6", "#e879f9",
+        "#2d1b4e", "#3d2663", "#1f1139", "#150a26",
+        "#faf5ff", "#1a0d2e", "#7c3aed", "#c026d3",
+        "#f3e8ff", "#ede9fe", "#f5f3ff", "#faf8ff",
+        0, 1, 0, 40
+      );
+
+      // Forest Green 主题
+      insertTheme.run(
+        "Forest Green", "forest", "森林绿意，自然清新的配色",
+        "#0d1f12", "#e8f5e9", "#66bb6a", "#9ccc65",
+        "#1a2e1f", "#243d2a", "#111f15", "#0a1a0e",
+        "#f1f8f4", "#0d1f12", "#2e7d32", "#558b2f",
+        "#e8f5e9", "#dcedc8", "#f1f8e9", "#f9fbe7",
+        0, 1, 0, 50
+      );
+
+      // Sunset Orange 主题
+      insertTheme.run(
+        "Sunset Orange", "sunset", "日落橙红，温暖活力的色调",
+        "#1f0f0a", "#fff3e0", "#ff9800", "#ff5722",
+        "#2e1a12", "#3d2418", "#1a0f0a", "#140a06",
+        "#fff8f0", "#1f0f0a", "#e65100", "#d84315",
+        "#ffe8d6", "#ffd4b8", "#fff3e0", "#fffaf5",
+        0, 1, 0, 60
+      );
+    });
+
+    themeTransaction();
   }
 }
 
@@ -562,6 +702,106 @@ export function updateSite(id: number, input: SiteInput) {
 
 export function deleteSite(id: number) {
   return getDb().prepare("DELETE FROM sites WHERE id = ?").run(id);
+}
+
+// Theme functions
+export function listThemes() {
+  const rows = getDb()
+    .prepare("SELECT * FROM themes ORDER BY sort_order ASC, id ASC")
+    .all() as Record<string, unknown>[];
+  return rows.map(mapTheme);
+}
+
+export function getThemeById(id: number) {
+  const row = getDb().prepare("SELECT * FROM themes WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  return row ? mapTheme(row) : undefined;
+}
+
+export function getActiveTheme() {
+  const row = getDb().prepare("SELECT * FROM themes WHERE is_active = 1").get() as Record<string, unknown> | undefined;
+  return row ? mapTheme(row) : undefined;
+}
+
+export function createTheme(input: Omit<Theme, "id" | "createdAt" | "updatedAt">) {
+  return getDb()
+    .prepare(
+      `
+      INSERT INTO themes (
+        name, slug, description,
+        dark_background, dark_foreground, dark_accent, dark_accent_2,
+        dark_panel, dark_panel_strong, dark_card_bg, dark_field_bg,
+        light_background, light_foreground, light_accent, light_accent_2,
+        light_panel, light_panel_strong, light_card_bg, light_field_bg,
+        use_backdrop_blur, use_gradient_glow, is_active, sort_order
+      ) VALUES (
+        @name, @slug, @description,
+        @darkBackground, @darkForeground, @darkAccent, @darkAccent2,
+        @darkPanel, @darkPanelStrong, @darkCardBg, @darkFieldBg,
+        @lightBackground, @lightForeground, @lightAccent, @lightAccent2,
+        @lightPanel, @lightPanelStrong, @lightCardBg, @lightFieldBg,
+        @useBackdropBlur, @useGradientGlow, @isActive, @sortOrder
+      )
+    `,
+    )
+    .run({
+      ...input,
+      useBackdropBlur: input.useBackdropBlur ? 1 : 0,
+      useGradientGlow: input.useGradientGlow ? 1 : 0,
+      isActive: input.isActive ? 1 : 0,
+    });
+}
+
+export function updateTheme(id: number, input: Omit<Theme, "id" | "createdAt" | "updatedAt">) {
+  return getDb()
+    .prepare(
+      `
+      UPDATE themes
+      SET name = @name,
+          slug = @slug,
+          description = @description,
+          dark_background = @darkBackground,
+          dark_foreground = @darkForeground,
+          dark_accent = @darkAccent,
+          dark_accent_2 = @darkAccent2,
+          dark_panel = @darkPanel,
+          dark_panel_strong = @darkPanelStrong,
+          dark_card_bg = @darkCardBg,
+          dark_field_bg = @darkFieldBg,
+          light_background = @lightBackground,
+          light_foreground = @lightForeground,
+          light_accent = @lightAccent,
+          light_accent_2 = @lightAccent2,
+          light_panel = @lightPanel,
+          light_panel_strong = @lightPanelStrong,
+          light_card_bg = @lightCardBg,
+          light_field_bg = @lightFieldBg,
+          use_backdrop_blur = @useBackdropBlur,
+          use_gradient_glow = @useGradientGlow,
+          sort_order = @sortOrder,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = @id
+    `,
+    )
+    .run({
+      id,
+      ...input,
+      useBackdropBlur: input.useBackdropBlur ? 1 : 0,
+      useGradientGlow: input.useGradientGlow ? 1 : 0,
+      isActive: input.isActive ? 1 : 0,
+    });
+}
+
+export function deleteTheme(id: number) {
+  return getDb().prepare("DELETE FROM themes WHERE id = ?").run(id);
+}
+
+export function activateTheme(id: number) {
+  const database = getDb();
+  const transaction = database.transaction(() => {
+    database.prepare("UPDATE themes SET is_active = 0").run();
+    database.prepare("UPDATE themes SET is_active = 1 WHERE id = ?").run(id);
+  });
+  return transaction();
 }
 
 export function getDashboardStats() {
