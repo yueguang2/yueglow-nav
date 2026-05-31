@@ -36,6 +36,7 @@ data
 *.pem
 .cache
 .turbo
+.pipeline
 
 # Documentation
 README.md

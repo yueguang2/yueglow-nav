@@ -28,7 +28,7 @@ export function ThemeCard({ theme }: ThemeCardProps) {
             </p>
           )}
 
-          {/* Color preview */}
+          {/* 颜色预览 */}
           <div className="mt-3 flex items-center gap-1.5">
             <div
               className="size-7 rounded-lg border border-[var(--line)]"

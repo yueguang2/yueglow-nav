@@ -123,7 +123,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
                 {state === "error" ? <XCircle className="size-10 text-[var(--danger)] animate-in zoom-in-50 duration-300" aria-label="错误" /> : null}
               </div>
 
-              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.3em] text-faint">Smart Redirect</p>
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.3em] text-faint">智能跳转</p>
               <h2 id="dialog-title" className="mt-3 text-3xl font-black tracking-[-0.05em]">{site.name}</h2>
               <p id="dialog-description" className="mt-3 max-w-sm text-sm leading-6 text-tertiary">{message}</p>
 

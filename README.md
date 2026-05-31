@@ -4,11 +4,12 @@ Yueglow Nav 是一个带后台管理能力的个人导航站。它面向个人�
 
 项目名来自“月光”的意象：Yueglow 表示柔和、清晰、有秩序的光。
 
-## Features
+## 功能特性
 
 - 前台导航首页：展示常用站点、站点分类、站点卡片和统计信息。
 - 后台管理面板：管理分类、站点、常用站点、主题配色、显示状态和排序。
 - 首次初始化账号：第一次访问后台时创建管理员账号，之后使用该账号登录。
+- OIDC 登录：启用后可用懒猫账号进入后台；如需本地用户名密码，可在后台单独设置。
 - 多链接支持：一个站点可以配置多条链接，并设置启用状态和排序。
 - 智能中转：点击站点时弹出进度圈，服务端测速后优选最快可用链接，并在新标签打开，支持内网 IP 链接参与测速。
 - 深色/浅色主题：支持手动切换，首次访问会按系统偏好自动选择初始主题，移动端提供原生兜底切换。
@@ -16,7 +17,7 @@ Yueglow Nav 是一个带后台管理能力的个人导航站。它面向个人�
 - SQLite 持久化：无需外部数据库，适合个人部署和轻量服务器。
 - Docker 支持：内置 `Dockerfile` 和 `docker-compose.yml`，数据目录可挂载持久化。
 
-## Tech Stack
+## 技术栈
 
 - Next.js 16 App Router
 - React 19
@@ -26,19 +27,19 @@ Yueglow Nav 是一个带后台管理能力的个人导航站。它面向个人�
 - Zod
 - Docker standalone deployment
 
-## Project Structure
+## 项目结构
 
-```text
-src/app                  前台页面、后台页面、API 路由和中转路由
-src/components           通用 UI、站点卡片、主题切换、主题预览、智能中转弹层
-src/lib                  数据库、认证、表单 Action、主题 CSS、链接优选和校验逻辑
-data                     SQLite 数据目录，默认不提交数据库文件
-Dockerfile               生产镜像构建文件
-docker-compose.yml       单机 Docker 部署配置
-.env.example             环境变量示例
-```
+| Path | Description |
+| --- | --- |
+| `src/app` | 前台页面、后台页面、API 路由和中转路由 |
+| `src/components` | 通用 UI、站点卡片、主题切换、主题预览、智能中转弹层 |
+| `src/lib` | 数据库、认证、表单 Action、主题 CSS、链接优选和校验逻辑 |
+| `data` | SQLite 数据目录，默认不提交数据库文件 |
+| `Dockerfile` | 生产镜像构建文件 |
+| `docker-compose.yml` | 单机 Docker 部署配置 |
+| `.env.example` | 环境变量示例 |
 
-## Requirements
+## 运行要求
 
 本地开发需要：
 
@@ -54,7 +55,7 @@ docker
 docker compose
 ```
 
-## Quick Start
+## 快速开始
 
 克隆项目：
 
@@ -82,9 +83,9 @@ npm run dev
 后台：http://localhost:3000/admin
 ```
 
-第一次访问后台会跳转到 `/admin/login`，用于创建管理员账号。
+第一次访问后台会跳转到 `/admin/login`。如果没有启用 OIDC，这里用于创建管理员账号；如果启用了 OIDC，可以直接用懒猫账号登录，或先创建本地账号。
 
-## Admin Usage
+## 后台使用
 
 后台入口：
 
@@ -99,10 +100,11 @@ http://localhost:3000/admin
 - 站点管理：新增、编辑、删除站点，设置所属分类、常用状态、显示状态和排序。
 - 链接管理：在站点表单内维护多条链接，可配置名称、URL、排序和启用状态。
 - 主题设置：查看并激活预设主题，前台、登录页和后台会使用当前激活主题。
+- 本地密码：如果先使用 OIDC 登录，可在仪表盘里为当前管理员设置或重置本地密码，之后就能用表单登录并自动填充。
 
 删除分类前，需要先删除或移动该分类下的站点。
 
-## Smart Redirect
+## 智能跳转
 
 Yueglow Nav 支持每个站点配置多条链接。点击前台站点卡片时：
 
@@ -127,7 +129,7 @@ JSON API：
 
 测速会并发检测当前站点启用的全部链接，并选择响应最快的可用链接。内网 IP 地址（例如 `192.168.x.x`、`10.x.x.x`、`172.16-31.x.x`）会参与测速，适合 NAS、软路由、家庭服务等场景。
 
-## Theme
+## 主题
 
 前台、登录页和后台都支持浅色/深色主题切换。
 
@@ -135,11 +137,18 @@ JSON API：
 - 手动切换：选择会写入浏览器 `localStorage`。
 - 后续访问：保持上次选择。
 - 移动端：主题切换按钮带原生事件兜底，即使客户端 hydration 异常也能更新页面主题。
-- 后台主题：访问 `/admin/themes` 可以激活预设主题。当前内置 Claymorphism、Glassmorphism、Ocean Blue、Purple Dream 等方案。
+- 后台主题：访问 `/admin/themes` 可以激活预设主题。当前内置黏土拟态、玻璃拟态、海洋蓝、紫色梦境等方案。
 
 当前不提供“跟随系统”按钮，只有“浅色”和“深色”两个显式选项。
 
-## Data Storage
+## 登录说明
+
+- 不启用 OIDC 时：第一次访问后台会先创建本地管理员账号。
+- 启用 OIDC 时：可以直接用懒猫账号进入后台。
+- 如果需要用户名密码登录：先在后台设置本地密码，再使用登录页表单。
+- 懒猫自动填充只针对本地用户名密码登录，不会为 OIDC 生成密码。
+
+## 数据存储
 
 默认数据目录：
 
@@ -161,11 +170,11 @@ DATA_DIR=/path/to/data npm run start
 
 `.gitignore` 已忽略数据库文件和 WAL/SHM 文件，不会把本地数据提交到 Git。
 
-## Environment Variables
+## 环境变量
 
 可以参考 `.env.example` 配置：
 
-| 变量 | 默认值 | 说明 |
+| Variable | Default | Description |
 | --- | --- | --- |
 | `NODE_ENV` | `development` / `production` | 运行环境，生产部署建议使用 `production`。 |
 | `HOSTNAME` | `0.0.0.0` | 服务监听地址，Docker 内默认监听全部网卡。 |
@@ -174,7 +183,7 @@ DATA_DIR=/path/to/data npm run start
 
 普通 Node 部署时可以创建 `.env` 文件，也可以直接在启动命令前传入环境变量。
 
-## Scripts
+## 脚本
 
 ```bash
 npm run dev
@@ -200,7 +209,7 @@ npm run lint
 
 运行 ESLint 检查。
 
-## Production
+## 生产部署
 
 普通 Node 部署：
 
@@ -302,7 +311,7 @@ volumes:
 
 只要保留 `./data` 目录，重建容器不会丢失后台数据。
 
-## Backup
+## 备份
 
 建议优先备份整个数据目录：
 
@@ -354,7 +363,7 @@ git clone git@github.com:yueguang2/yueglow-nav.git
 git push
 ```
 
-## Notes
+## 注意事项
 
 - 本项目是单管理员个人导航，当前不提供多用户系统。
 - SQLite 适合个人和轻量自托管场景。
@@ -363,6 +372,6 @@ git push
 - 首次启动会自动写入一批示例分类和站点，可在后台删除或修改。
 - 站点链接优选依赖服务端网络环境，不同服务器到目标站点的测速结果可能不同。
 
-## License
+## 许可证
 
 本项目基于 MIT License 开源，详见 [LICENSE](./LICENSE)。

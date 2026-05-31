@@ -66,7 +66,7 @@ export function ThemeForm({ theme }: ThemeFormProps) {
           name="name"
           value={formData.name}
           onChange={(e) => handleNameChange(e.target.value)}
-          placeholder="例如：Glassmorphism"
+          placeholder="例如：玻璃拟态"
           required
         />
       </Field>
@@ -92,7 +92,7 @@ export function ThemeForm({ theme }: ThemeFormProps) {
         />
       </Field>
 
-      {/* Preview */}
+      {/* 预览 */}
       <div>
         <div className="mb-2 flex items-center justify-between">
           <span className="text-sm font-medium text-[var(--soft-text)]">实时预览</span>
@@ -124,7 +124,7 @@ export function ThemeForm({ theme }: ThemeFormProps) {
         <ThemePreview theme={formData} mode={previewMode} />
       </div>
 
-      {/* Dark mode colors */}
+      {/* 深色模式配色 */}
       <div>
         <h3 className="mb-3 text-sm font-medium text-[var(--soft-text)]">深色模式配色</h3>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -179,7 +179,7 @@ export function ThemeForm({ theme }: ThemeFormProps) {
         </div>
       </div>
 
-      {/* Light mode colors */}
+      {/* 浅色模式配色 */}
       <div>
         <h3 className="mb-3 text-sm font-medium text-[var(--soft-text)]">浅色模式配色</h3>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -234,11 +234,11 @@ export function ThemeForm({ theme }: ThemeFormProps) {
         </div>
       </div>
 
-      {/* Theme features */}
+      {/* 主题特性 */}
       <div className="grid gap-2">
         <Checkbox
           name="useBackdropBlur"
-          label="使用背景模糊效果（Glassmorphism 风格）"
+          label="使用背景模糊效果（玻璃拟态风格）"
           checked={formData.useBackdropBlur}
           onChange={(e) => handleChange("useBackdropBlur", e.target.checked)}
         />
@@ -250,7 +250,7 @@ export function ThemeForm({ theme }: ThemeFormProps) {
         />
       </div>
 
-      {/* Sort order */}
+      {/* 排序 */}
       <Field label="排序">
         <TextInput
           type="number"
@@ -262,7 +262,7 @@ export function ThemeForm({ theme }: ThemeFormProps) {
         />
       </Field>
 
-      {/* Actions */}
+      {/* 操作 */}
       <div className="flex gap-3">
         <SubmitButton>{theme ? "保存主题" : "创建主题"}</SubmitButton>
         {theme && (

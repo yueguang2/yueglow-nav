@@ -18,11 +18,12 @@ import {
   getCategoryById,
   getThemeById,
   updateCategory,
+  updateAdminPassword,
   updateSite,
   updateTheme,
 } from "./db";
 import { hashPassword, verifyPassword } from "./crypto";
-import { type ActionState, categorySchema, loginSchema, setupSchema, siteSchema, themeSchema } from "./validation";
+import { type ActionState, categorySchema, loginSchema, passwordSchema, setupSchema, siteSchema, themeSchema } from "./validation";
 
 function parseCheckbox(formData: FormData, key: string) {
   return formData.has(key);
@@ -86,6 +87,20 @@ export async function loginAction(_state: ActionState, formData: FormData): Prom
 
   await setSession(admin.id);
   redirect("/admin");
+}
+
+export async function updateAdminPasswordAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const parsed = passwordSchema.safeParse({
+    password: formData.get("password"),
+  });
+
+  if (!parsed.success) {
+    return error(parsed.error.issues[0]?.message ?? "保存密码失败");
+  }
+
+  updateAdminPassword(admin.id, hashPassword(parsed.data.password));
+  return success("本地密码已更新");
 }
 
 export async function logoutAction() {

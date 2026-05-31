@@ -44,7 +44,7 @@ export function HomePage({
               </span>
               <span>
                 <span className="block text-sm font-semibold uppercase tracking-[0.36em] text-faint">Yueglow</span>
-                <span className="block text-lg font-black tracking-tight">Personal Nav</span>
+                <span className="block text-lg font-black tracking-tight">个人导航</span>
               </span>
             </Link>
 
@@ -87,7 +87,7 @@ export function HomePage({
           <section className="reveal grid gap-4 [animation-delay:160ms]">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <Badge>Favorites</Badge>
+                <Badge>常用入口</Badge>
                 <h2 className="mt-3 text-3xl font-black tracking-[-0.04em]">常用站点</h2>
               </div>
               <p className="max-w-lg text-sm leading-6 text-tertiary">高频入口放在最前面，适合浏览器首页或工作台长期使用。</p>
@@ -110,7 +110,7 @@ export function HomePage({
               <div>
                 <Badge>
                   <Layers3 className="mr-2 size-3.5 text-[var(--accent)]" />
-                  Categories
+                  站点分类
                 </Badge>
                 <h2 className="mt-3 text-3xl font-black tracking-[-0.04em]">站点分类</h2>
               </div>
@@ -138,7 +138,7 @@ export function HomePage({
                         <p className="mt-1 text-sm leading-6 text-tertiary">{category.description || "未填写分类描述"}</p>
                       </div>
                     </div>
-                    <Badge>{category.sites.length} sites</Badge>
+                    <Badge>{category.sites.length} 个站点</Badge>
                   </div>
 
                   <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">

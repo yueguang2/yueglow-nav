@@ -41,7 +41,7 @@ async function SitesContent({
   return (
     <div className="grid gap-5">
       <header className="glass rounded-[2rem] p-6">
-        <Badge>Sites</Badge>
+        <Badge>站点</Badge>
         <h1 className="mt-5 text-4xl font-black tracking-[-0.06em]">站点管理</h1>
         <p className="mt-2 text-sm leading-6 text-tertiary">维护站点列表、所属分类、常用状态、排序和前台显示状态。</p>
         {params.message ? <p className="chip-success mt-4 rounded-2xl px-4 py-3 text-sm">{messageFromCode(params.message)}</p> : null}

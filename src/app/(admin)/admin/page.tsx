@@ -1,5 +1,9 @@
 import { ArrowUpRight, EyeOff, FolderKanban, Globe2, Star } from "lucide-react";
+import { ActionForm } from "@/components/action-form";
+import { SubmitButton } from "@/components/action-button";
+import { Field, TextInput } from "@/components/ui";
 import { Badge, InitialMark, LinkButton } from "@/components/ui";
+import { updateAdminPasswordAction } from "@/lib/actions";
 import { getDashboardStats, listCategories, listSites } from "@/lib/db";
 
 export default function AdminDashboardPage() {
@@ -17,7 +21,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="grid gap-5">
       <header className="glass rounded-[2rem] p-6">
-        <Badge>Dashboard</Badge>
+        <Badge>仪表盘</Badge>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-4xl font-black tracking-[-0.06em]">内容控制台</h1>
@@ -89,6 +93,22 @@ export default function AdminDashboardPage() {
               </a>
             ))}
           </div>
+        </div>
+
+        <div className="glass rounded-[2rem] p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black tracking-tight">本地密码</h2>
+            <Badge>管理</Badge>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-tertiary">
+            OIDC 首次登录不会生成可见密码。这里可以为当前管理员设置本地用户名密码，之后就能用表单登录并触发自动填充。
+          </p>
+          <ActionForm action={updateAdminPasswordAction} className="mt-5 grid gap-4">
+            <Field label="新密码" hint="至少 8 个字符">
+              <TextInput name="password" type="password" autoComplete="new-password" placeholder="请输入新的本地密码" required />
+            </Field>
+            <SubmitButton pendingText="正在保存...">保存本地密码</SubmitButton>
+          </ActionForm>
         </div>
       </section>
     </div>

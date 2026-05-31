@@ -37,13 +37,13 @@ export function ThemePreview({ theme, mode }: ThemePreviewProps) {
       className="relative overflow-hidden rounded-[2rem] p-6"
       data-theme={mode}
     >
-      {/* Background */}
+      {/* 背景 */}
       <div
         className="absolute inset-0 -z-10"
         style={{ background: `var(--background)` }}
       />
 
-      {/* Sample card */}
+      {/* 示例卡片 */}
       <div
         className="relative rounded-[1.5rem] p-4"
         style={{
@@ -88,7 +88,7 @@ export function ThemePreview({ theme, mode }: ThemePreviewProps) {
           </div>
         </div>
 
-        {/* Sample button */}
+        {/* 示例按钮 */}
         <button
           className="mt-3 rounded-full px-3 py-1.5 text-xs font-semibold transition-all hover:scale-105"
           style={{
@@ -103,7 +103,7 @@ export function ThemePreview({ theme, mode }: ThemePreviewProps) {
         </button>
       </div>
 
-      {/* Sample panel */}
+      {/* 示例面板 */}
       <div
         className="mt-3 rounded-[1.25rem] p-3"
         style={{

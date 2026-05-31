@@ -16,6 +16,9 @@
 /data/*.db
 /data/*.db-*
 
+# local porting workflow state
+/.pipeline/
+
 # misc
 .DS_Store
 npm-debug.log*

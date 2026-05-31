@@ -3,7 +3,6 @@ import { BarChart3, FolderKanban, Globe2, LayoutDashboard, LogOut, Palette } fro
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/actions";
 import { getCurrentAdmin } from "@/lib/auth";
-import { getAdminCount } from "@/lib/db";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 
 const navItems = [
@@ -18,10 +17,6 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  if (getAdminCount() === 0) {
-    redirect("/admin/login");
-  }
-
   const admin = await getCurrentAdmin();
 
   if (!admin) {
@@ -37,7 +32,7 @@ export default async function AdminLayout({
               <BarChart3 className="size-5" />
             </span>
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-faint">Admin</p>
+              <p className="text-xs uppercase tracking-[0.28em] text-faint">后台</p>
               <p className="font-black tracking-tight">导航后台</p>
             </div>
           </div>

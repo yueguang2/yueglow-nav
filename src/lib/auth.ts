@@ -51,7 +51,6 @@ export async function getCurrentAdmin() {
       deleteSession(sessionId);
     }
 
-    cookieStore.delete(sessionCookieName);
     return undefined;
   }
 

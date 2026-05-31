@@ -10,6 +10,10 @@ export const loginSchema = z.object({
   password: z.string().min(1, "请输入密码"),
 });
 
+export const passwordSchema = z.object({
+  password: z.string().min(8, "密码至少 8 个字符").max(128, "密码不能超过 128 个字符"),
+});
+
 export const categorySchema = z.object({
   name: z.string().trim().min(1, "请输入分类名称").max(40, "分类名称不能超过 40 个字符"),
   description: z.string().trim().max(120, "描述不能超过 120 个字符").default(""),

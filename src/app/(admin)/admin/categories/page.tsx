@@ -46,7 +46,7 @@ async function CategoriesContent({
   return (
     <div className="grid gap-5">
       <header className="glass rounded-[2rem] p-6">
-        <Badge>Categories</Badge>
+        <Badge>分类</Badge>
         <h1 className="mt-5 text-4xl font-black tracking-[-0.06em]">分类管理</h1>
         <p className="mt-2 text-sm leading-6 text-tertiary">控制前台大版块、排序和显示状态。删除分类前需要先处理分类下的站点。</p>
         {params.message ? <p className="chip-success mt-4 rounded-2xl px-4 py-3 text-sm">{messageFromCode(params.message)}</p> : null}

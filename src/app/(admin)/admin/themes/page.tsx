@@ -14,7 +14,7 @@ export default async function ThemesPage({ searchParams }: ThemesPageProps) {
   return (
     <div className="grid gap-5">
       <header className="glass rounded-[2rem] p-6">
-        <Badge>Themes</Badge>
+        <Badge>主题</Badge>
         <h1 className="mt-5 text-4xl font-black tracking-[-0.06em]">主题设置</h1>
         <p className="mt-2 text-sm leading-6 text-tertiary">
           选择预制主题配色方案，支持深色和浅色模式。激活主题后将立即应用到前台页面。

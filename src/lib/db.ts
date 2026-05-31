@@ -223,9 +223,9 @@ function migrate(database: Database.Database) {
     `);
 
     const themeTransaction = database.transaction(() => {
-      // Claymorphism 主题（当前激活）
+      // 黏土拟态主题（当前激活）
       insertTheme.run(
-        "Claymorphism", "clay", "黏土拟态风格，实心背景和浮雕阴影",
+        "黏土拟态", "clay", "黏土拟态风格，实心背景和浮雕阴影",
         "#080b12", "#eef4ff", "#76e4f7", "#d7ff72",
         "#151921", "#1d2230", "#0f1218", "#0a0d14",
         "#f4f0e8", "#101620", "#0f6f7f", "#7a5f00",
@@ -233,9 +233,9 @@ function migrate(database: Database.Database) {
         0, 1, 1, 10
       );
 
-      // Glassmorphism 主题
+      // 玻璃拟态主题
       insertTheme.run(
-        "Glassmorphism", "glass", "玻璃拟态风格，半透明背景和模糊效果",
+        "玻璃拟态", "glass", "玻璃拟态风格，半透明背景和模糊效果",
         "#080b12", "#eef4ff", "#76e4f7", "#d7ff72",
         "rgba(255, 255, 255, 0.08)", "rgba(255, 255, 255, 0.14)", "rgba(8, 11, 18, 0.58)", "rgba(2, 6, 23, 0.45)",
         "#f4f0e8", "#101620", "#0f6f7f", "#7a5f00",
@@ -243,9 +243,9 @@ function migrate(database: Database.Database) {
         1, 1, 0, 20
       );
 
-      // Ocean Blue 主题
+      // 海洋蓝主题
       insertTheme.run(
-        "Ocean Blue", "ocean", "深海蓝调，沉稳专业的配色方案",
+        "海洋蓝", "ocean", "深海蓝调，沉稳专业的配色方案",
         "#0a1628", "#e8f4f8", "#4fc3f7", "#26c6da",
         "#1a2332", "#243447", "#121e2e", "#0d1621",
         "#f0f4f8", "#1a2332", "#0277bd", "#0097a7",
@@ -253,9 +253,9 @@ function migrate(database: Database.Database) {
         0, 1, 0, 30
       );
 
-      // Purple Dream 主题
+      // 紫色梦境主题
       insertTheme.run(
-        "Purple Dream", "purple", "紫色梦幻，优雅神秘的视觉体验",
+        "紫色梦境", "purple", "紫色梦幻，优雅神秘的视觉体验",
         "#1a0d2e", "#f3e8ff", "#b794f6", "#e879f9",
         "#2d1b4e", "#3d2663", "#1f1139", "#150a26",
         "#faf5ff", "#1a0d2e", "#7c3aed", "#c026d3",
@@ -263,9 +263,9 @@ function migrate(database: Database.Database) {
         0, 1, 0, 40
       );
 
-      // Forest Green 主题
+      // 森林绿主题
       insertTheme.run(
-        "Forest Green", "forest", "森林绿意，自然清新的配色",
+        "森林绿", "forest", "森林绿意，自然清新的配色",
         "#0d1f12", "#e8f5e9", "#66bb6a", "#9ccc65",
         "#1a2e1f", "#243d2a", "#111f15", "#0a1a0e",
         "#f1f8f4", "#0d1f12", "#2e7d32", "#558b2f",
@@ -273,9 +273,9 @@ function migrate(database: Database.Database) {
         0, 1, 0, 50
       );
 
-      // Sunset Orange 主题
+      // 日落橙主题
       insertTheme.run(
-        "Sunset Orange", "sunset", "日落橙红，温暖活力的色调",
+        "日落橙", "sunset", "日落橙红，温暖活力的色调",
         "#1f0f0a", "#fff3e0", "#ff9800", "#ff5722",
         "#2e1a12", "#3d2418", "#1a0f0a", "#140a06",
         "#fff8f0", "#1f0f0a", "#e65100", "#d84315",
@@ -416,6 +416,12 @@ export function createAdmin(username: string, passwordHash: string) {
   return getDb()
     .prepare("INSERT INTO admin_users (username, password_hash) VALUES (?, ?)")
     .run(username, passwordHash);
+}
+
+export function updateAdminPassword(adminId: number, passwordHash: string) {
+  return getDb()
+    .prepare("UPDATE admin_users SET password_hash = ? WHERE id = ?")
+    .run(passwordHash, adminId);
 }
 
 export function createSession(sessionId: string, adminId: number, expiresAt: Date) {
