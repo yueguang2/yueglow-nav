@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createAdmin, getAdminByUsername } from "./db";
 import { setSession } from "./auth";
 import { createToken, hashPassword } from "./crypto";
+import { isLazycatOidcLoginEnabled } from "./lazycat";
 
 const stateCookieName = "nav_oidc_state";
 const stateMaxAgeSeconds = 10 * 60;
@@ -38,7 +39,15 @@ export function getOidcConfig() {
 }
 
 export function isOidcEnabled() {
-  return Boolean(getOidcConfig());
+  return Boolean(getEnabledOidcConfig());
+}
+
+export function getEnabledOidcConfig() {
+  if (!isLazycatOidcLoginEnabled()) {
+    return undefined;
+  }
+
+  return getOidcConfig();
 }
 
 export function getOidcRedirectUri(request: Request) {
@@ -51,7 +60,7 @@ export function getExternalUrl(path: string, request: Request) {
 }
 
 export async function createOidcLoginUrl(request: Request) {
-  const config = getOidcConfig();
+  const config = getEnabledOidcConfig();
 
   if (!config) {
     throw new Error("OIDC is not configured");
@@ -86,7 +95,7 @@ export async function verifyOidcState(state: string | null) {
 }
 
 export async function exchangeOidcCode(code: string, request: Request) {
-  const config = getOidcConfig();
+  const config = getEnabledOidcConfig();
 
   if (!config) {
     throw new Error("OIDC is not configured");
@@ -119,7 +128,7 @@ export async function exchangeOidcCode(code: string, request: Request) {
 }
 
 export async function fetchOidcUserInfo(accessToken: string) {
-  const config = getOidcConfig();
+  const config = getEnabledOidcConfig();
 
   if (!config) {
     throw new Error("OIDC is not configured");

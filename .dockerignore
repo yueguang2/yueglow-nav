@@ -4,6 +4,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+node_npm
+node_system
+wsl-ubuntu
+npm.cmd
+start-dev.cmd
 
 # Build output
 .next
@@ -34,6 +39,7 @@ data
 # Misc
 .DS_Store
 *.pem
+*.log
 .cache
 .turbo
 .pipeline

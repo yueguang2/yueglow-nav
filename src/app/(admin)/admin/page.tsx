@@ -5,11 +5,16 @@ import { Field, TextInput } from "@/components/ui";
 import { Badge, InitialMark, LinkButton } from "@/components/ui";
 import { updateAdminPasswordAction } from "@/lib/actions";
 import { getDashboardStats, listCategories, listSites } from "@/lib/db";
+import { isLazycatPasswordlessLoginEnabled } from "@/lib/lazycat";
+import { isOidcEnabled } from "@/lib/oidc";
 
 export default function AdminDashboardPage() {
   const stats = getDashboardStats();
   const categories = listCategories({ includeHidden: true });
   const sites = listSites({ includeHidden: true }).slice(0, 8);
+  const oidcEnabled = isOidcEnabled();
+  const passwordlessEnabled = isLazycatPasswordlessLoginEnabled();
+  const localPasswordDescription = getLocalPasswordDescription(oidcEnabled, passwordlessEnabled);
 
   const cards = [
     { label: "分类", value: stats.categoryCount, icon: FolderKanban },
@@ -101,11 +106,11 @@ export default function AdminDashboardPage() {
             <Badge>管理</Badge>
           </div>
           <p className="mt-3 text-sm leading-6 text-tertiary">
-            OIDC 首次登录不会生成可见密码。这里可以为当前管理员设置本地用户名密码，之后就能用表单登录并触发自动填充。
+            {localPasswordDescription}
           </p>
           <ActionForm action={updateAdminPasswordAction} className="mt-5 grid gap-4">
             <Field label="新密码" hint="至少 8 个字符">
-              <TextInput name="password" type="password" autoComplete="new-password" placeholder="请输入新的本地密码" required />
+              <TextInput name="password" type="password" autoComplete={passwordlessEnabled ? "new-password" : "off"} placeholder="请输入新的本地密码" required />
             </Field>
             <SubmitButton pendingText="正在保存...">保存本地密码</SubmitButton>
           </ActionForm>
@@ -113,4 +118,20 @@ export default function AdminDashboardPage() {
       </section>
     </div>
   );
+}
+
+function getLocalPasswordDescription(oidcEnabled: boolean, passwordlessEnabled: boolean) {
+  if (oidcEnabled && passwordlessEnabled) {
+    return "OIDC 首次登录不会生成可见密码。这里可以为当前管理员设置本地用户名密码，之后就能用表单登录并触发自动填充。";
+  }
+
+  if (oidcEnabled) {
+    return "OIDC 首次登录不会生成可见密码。这里可以为当前管理员设置本地用户名密码，之后就能用表单登录。";
+  }
+
+  if (passwordlessEnabled) {
+    return "这里可以为当前管理员更新本地密码，之后就能用表单登录并触发自动填充。";
+  }
+
+  return "这里可以为当前管理员更新本地密码，之后就能用表单登录。";
 }

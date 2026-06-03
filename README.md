@@ -9,7 +9,7 @@ Yueglow Nav 是一个带后台管理能力的个人导航站。它面向个人�
 - 前台导航首页：展示常用站点、站点分类、站点卡片和统计信息。
 - 后台管理面板：管理分类、站点、常用站点、主题配色、显示状态和排序。
 - 首次初始化账号：第一次访问后台时创建管理员账号，之后使用该账号登录。
-- OIDC 登录：启用后可用懒猫账号进入后台；如需本地用户名密码，可在后台单独设置。
+- OIDC 登录：通过环境变量启用后可用懒猫账号进入后台；如需本地用户名密码，可在后台单独设置。
 - 多链接支持：一个站点可以配置多条链接，并设置启用状态和排序。
 - 智能中转：点击站点时弹出进度圈，服务端测速后优选最快可用链接，并在新标签打开，支持内网 IP 链接参与测速。
 - 深色/浅色主题：支持手动切换，首次访问会按系统偏好自动选择初始主题，移动端提供原生兜底切换。
@@ -147,6 +147,7 @@ JSON API：
 - 启用 OIDC 时：可以直接用懒猫账号进入后台。
 - 如果需要用户名密码登录：先在后台设置本地密码，再使用登录页表单。
 - 懒猫自动填充只针对本地用户名密码登录，不会为 OIDC 生成密码。
+- `LAZYCAT_PASSWORDLESS_LOGIN_ENABLED` 只控制应用侧表单自动填充适配和提示，不是真正的服务端免密 SSO。
 
 ## 数据存储
 
@@ -180,6 +181,14 @@ DATA_DIR=/path/to/data npm run start
 | `HOSTNAME` | `0.0.0.0` | 服务监听地址，Docker 内默认监听全部网卡。 |
 | `PORT` | `3000` | HTTP 服务端口。 |
 | `DATA_DIR` | `./data` | SQLite 数据目录，Docker 中默认使用 `/app/data`。 |
+| `LAZYCAT_OIDC_LOGIN_ENABLED` | `false` | 是否启用后台懒猫/OIDC 登录。只有 `true` / `1` / `yes` / `on` 会启用。 |
+| `LAZYCAT_PASSWORDLESS_LOGIN_ENABLED` | `false` | 是否启用懒猫自动填充本地用户名密码表单的应用侧适配。 |
+| `OIDC_CLIENT_ID` / `LAZYCAT_AUTH_OIDC_CLIENT_ID` | - | OIDC 客户端 ID。 |
+| `OIDC_CLIENT_SECRET` / `LAZYCAT_AUTH_OIDC_CLIENT_SECRET` | - | OIDC 客户端密钥。 |
+| `OIDC_AUTH_URI` / `LAZYCAT_AUTH_OIDC_AUTH_URI` | - | OIDC 授权地址。 |
+| `OIDC_TOKEN_URI` / `LAZYCAT_AUTH_OIDC_TOKEN_URI` | - | OIDC token 地址。 |
+| `OIDC_USERINFO_URI` / `LAZYCAT_AUTH_OIDC_USERINFO_URI` | - | OIDC userinfo 地址。 |
+| `LAZYCAT_APP_DOMAIN` | - | 懒猫/反代场景下用于生成外部回调 URL 的域名。 |
 
 普通 Node 部署时可以创建 `.env` 文件，也可以直接在启动命令前传入环境变量。
 
@@ -263,6 +272,13 @@ server {
 docker compose up -d --build
 ```
 
+启用懒猫登录和自动填充适配时，可以在同目录 `.env` 中配置：
+
+```env
+LAZYCAT_OIDC_LOGIN_ENABLED=true
+LAZYCAT_PASSWORDLESS_LOGIN_ENABLED=true
+```
+
 访问：
 
 ```text
@@ -310,6 +326,24 @@ volumes:
 ```
 
 只要保留 `./data` 目录，重建容器不会丢失后台数据。
+
+如果直接使用 Docker Hub 镜像：
+
+```bash
+docker run -d \
+  --name yueglow-nav \
+  -p 3000:3000 \
+  -v ./data:/app/data \
+  -e DATA_DIR=/app/data \
+  -e LAZYCAT_OIDC_LOGIN_ENABLED=true \
+  -e LAZYCAT_PASSWORDLESS_LOGIN_ENABLED=true \
+  -e LAZYCAT_AUTH_OIDC_CLIENT_ID=your-client-id \
+  -e LAZYCAT_AUTH_OIDC_CLIENT_SECRET=your-client-secret \
+  -e LAZYCAT_AUTH_OIDC_AUTH_URI=https://example.com/oauth/authorize \
+  -e LAZYCAT_AUTH_OIDC_TOKEN_URI=https://example.com/oauth/token \
+  -e LAZYCAT_AUTH_OIDC_USERINFO_URI=https://example.com/oauth/userinfo \
+  2192098715/yueglow-nav:latest
+```
 
 ## 备份
 

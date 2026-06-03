@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
-import { exchangeOidcCode, fetchOidcUserInfo, getExternalUrl, isOidcAdmin, signInOidcAdmin, verifyOidcState } from "@/lib/oidc";
+import { isLazycatOidcLoginEnabled } from "@/lib/lazycat";
+import { exchangeOidcCode, fetchOidcUserInfo, getExternalUrl, isOidcAdmin, isOidcEnabled, signInOidcAdmin, verifyOidcState } from "@/lib/oidc";
 
 export async function GET(request: Request) {
+  if (!isLazycatOidcLoginEnabled()) {
+    return NextResponse.redirect(getExternalUrl("/admin/login?error=oidc-disabled", request));
+  }
+
+  if (!isOidcEnabled()) {
+    return NextResponse.redirect(getExternalUrl("/admin/login?error=oidc-unavailable", request));
+  }
+
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");

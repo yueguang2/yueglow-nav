@@ -6,6 +6,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Field, TextInput } from "@/components/ui";
 import { getCurrentAdmin } from "@/lib/auth";
 import { getAdminCount } from "@/lib/db";
+import { isLazycatPasswordlessLoginEnabled } from "@/lib/lazycat";
 import { isOidcEnabled } from "@/lib/oidc";
 import { loginAction, setupAdminAction } from "@/lib/actions";
 
@@ -24,7 +25,11 @@ export default async function LoginPage({
   const needsSetup = getAdminCount() === 0;
   const action = needsSetup ? setupAdminAction : loginAction;
   const oidcEnabled = isOidcEnabled();
+  const passwordlessEnabled = isLazycatPasswordlessLoginEnabled();
   const errorMessage = getOidcErrorMessage(params?.error);
+  const formAutoComplete = passwordlessEnabled ? undefined : "off";
+  const usernameAutoComplete = passwordlessEnabled ? "username" : "off";
+  const passwordAutoComplete = passwordlessEnabled ? (needsSetup ? "new-password" : "current-password") : "off";
 
   return (
     <main className="grid min-h-screen place-items-center px-5 py-10">
@@ -64,12 +69,12 @@ export default async function LoginPage({
             </a>
           ) : null}
 
-          <ActionForm action={action} className="mt-8 grid gap-4">
+          <ActionForm action={action} autoComplete={formAutoComplete} className="mt-8 grid gap-4">
             <Field label="用户名">
-              <TextInput name="username" autoComplete="username" placeholder="admin" required />
+              <TextInput name="username" autoComplete={usernameAutoComplete} placeholder="admin" required />
             </Field>
             <Field label="密码" hint={needsSetup ? "至少 8 个字符" : oidcEnabled ? "已有本地密码时可直接登录" : undefined}>
-              <TextInput name="password" type="password" autoComplete={needsSetup ? "new-password" : "current-password"} placeholder={needsSetup ? "创建本地密码" : "请输入本地密码"} required />
+              <TextInput name="password" type="password" autoComplete={passwordAutoComplete} placeholder={needsSetup ? "创建本地密码" : "请输入本地密码"} required />
             </Field>
             <SubmitButton pendingText={needsSetup ? "正在初始化..." : "正在登录..."}>{needsSetup ? "创建账号并进入" : "登录后台"}</SubmitButton>
           </ActionForm>
@@ -87,6 +92,8 @@ function getOidcErrorMessage(error?: string) {
       return "登录状态已过期，请重新发起登录。";
     case "oidc-unavailable":
       return "OIDC 配置不可用，请确认应用已在懒猫环境中安装。";
+    case "oidc-disabled":
+      return "懒猫登录当前未启用。";
     case "oidc-failed":
       return "OIDC 登录失败，请稍后重试。";
     default:

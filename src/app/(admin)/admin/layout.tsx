@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import clsx from "clsx";
 import { BarChart3, FolderKanban, Globe2, LayoutDashboard, LogOut, Palette } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -77,3 +79,4 @@ export default async function AdminLayout({
     </main>
   );
 }
+
