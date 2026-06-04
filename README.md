@@ -76,6 +76,18 @@ npm install
 npm run dev
 ```
 
+如果需要通过局域网 IP 或代理域名访问开发服务，请让 dev server 监听全部网卡：
+
+```bash
+next dev -H 0.0.0.0
+```
+
+同时在 `.env` 中配置 `NEXT_ALLOWED_DEV_ORIGINS` 和 `NEXT_SERVER_ACTION_ALLOWED_ORIGINS`。前者填写 hostname，不带端口；后者填写 host，可以带端口。修改这些来源配置后需要重启 dev server。
+
+浏览器会按域名/IP 隔离登录 Cookie；分别用 `localhost`、局域网 IP、代理域名测试后台时，需要在每个来源下单独登录。
+
+本地 HTTP 开发时不要在 `.env.local` 中设置 `NODE_ENV=production`，否则登录 Cookie 可能按生产安全策略写入，导致后台登录后仍回到登录页。
+
 访问：
 
 ```text
@@ -181,6 +193,8 @@ DATA_DIR=/path/to/data npm run start
 | `HOSTNAME` | `0.0.0.0` | 服务监听地址，Docker 内默认监听全部网卡。 |
 | `PORT` | `3000` | HTTP 服务端口。 |
 | `DATA_DIR` | `./data` | SQLite 数据目录，Docker 中默认使用 `/app/data`。 |
+| `NEXT_ALLOWED_DEV_ORIGINS` | `ailab.heiyu.space,192.168.31.177` | 开发环境允许访问 Next dev 资源的 hostname，多个值用英文逗号分隔，不带协议和端口。 |
+| `NEXT_SERVER_ACTION_ALLOWED_ORIGINS` | `ailab.heiyu.space,ailab.heiyu.space:3000,192.168.31.177,192.168.31.177:3000` | 允许提交 Server Actions 的 host，多个值用英文逗号分隔，可带端口。 |
 | `LAZYCAT_OIDC_LOGIN_ENABLED` | `false` | 是否启用后台懒猫/OIDC 登录。只有 `true` / `1` / `yes` / `on` 会启用。 |
 | `LAZYCAT_PASSWORDLESS_LOGIN_ENABLED` | `false` | 是否启用懒猫自动填充本地用户名密码表单的应用侧适配。 |
 | `OIDC_CLIENT_ID` / `LAZYCAT_AUTH_OIDC_CLIENT_ID` | - | OIDC 客户端 ID。 |

@@ -1,30 +1,29 @@
 import { redirect } from "next/navigation";
+import { Pin, PinOff, Plus } from "lucide-react";
 import { ActionForm } from "@/components/action-form";
 import { SubmitButton } from "@/components/action-button";
-import { Badge, Checkbox, Field, InitialMark, TextInput, Textarea } from "@/components/ui";
-import { deleteCategoryAction, saveCategoryAction } from "@/lib/actions";
-import { countSitesByCategory, getCategoryById, listCategories } from "@/lib/db";
+import { AdminModal, AdminModalCloseButton } from "@/components/admin-drawer";
+import { AdminNotice } from "@/components/admin-notice";
+import { ConfirmSubmitForm } from "@/components/confirm-submit-form";
+import { Badge, Checkbox, Field, InitialMark, LinkButton, TextInput, Textarea } from "@/components/ui";
+import { deleteCategoryAction, saveCategoryAction, toggleCategoryPinAction } from "@/lib/actions";
+import { normalizePageParam, pageHref, parsePage } from "@/lib/admin-routing";
+import { countSitesByCategory, getCategoryById, listCategoriesPage } from "@/lib/db";
+import type { Category } from "@/lib/types";
 
-function messageFromCode(code?: string) {
-  if (code === "category-has-sites") {
-    return "该分类下仍有站点，请先移动或删除站点。";
-  }
+const CATEGORY_PAGE_SIZE = 12;
 
-  if (code === "category-deleted") {
-    return "分类已删除。";
-  }
-
-  if (code === "category-missing") {
-    return "分类不存在。";
-  }
-
-  return "";
-}
+type CategoriesPageSearchParams = {
+  edit?: string;
+  new?: string;
+  message?: string;
+  page?: string;
+};
 
 export default function CategoriesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; message?: string }>;
+  searchParams: Promise<CategoriesPageSearchParams>;
 }) {
   return <CategoriesContent searchParams={searchParams} />;
 }
@@ -32,98 +31,228 @@ export default function CategoriesPage({
 async function CategoriesContent({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; message?: string }>;
+  searchParams: Promise<CategoriesPageSearchParams>;
 }) {
   const params = await searchParams;
-  const categories = listCategories({ includeHidden: true });
-  const editId = Number(params.edit);
-  const editingCategory = editId > 0 ? getCategoryById(editId) : undefined;
+  const requestedPage = parsePage(params.page);
+  const paginatedCategories = listCategoriesPage({ includeHidden: true, page: requestedPage, pageSize: CATEGORY_PAGE_SIZE });
+  const normalizedHref = normalizePageParam("/admin/categories", requestedPage, paginatedCategories.page, {
+    edit: params.edit,
+    new: params.new,
+    message: params.message,
+  });
 
-  if (editId > 0 && !editingCategory) {
-    redirect("/admin/categories?message=category-missing");
+  if (normalizedHref) {
+    redirect(normalizedHref, "replace");
+  }
+
+  const categories = paginatedCategories.items;
+  const currentHref = pageHref("/admin/categories", paginatedCategories.page);
+  const editId = Number(params.edit);
+  const isEditing = editId > 0;
+  const isCreating = !isEditing && params.new === "1";
+  const editingCategory = isEditing ? getCategoryById(editId) : undefined;
+
+  if (isEditing && !editingCategory) {
+    redirect(pageHref("/admin/categories", paginatedCategories.page, { message: "category-missing" }), "replace");
   }
 
   return (
     <div className="grid gap-5">
       <header className="glass rounded-[2rem] p-6">
         <Badge>分类</Badge>
-        <h1 className="mt-5 text-4xl font-black tracking-[-0.06em]">分类管理</h1>
-        <p className="mt-2 text-sm leading-6 text-tertiary">控制前台大版块、排序和显示状态。删除分类前需要先处理分类下的站点。</p>
-        {params.message ? <p className="chip-success mt-4 rounded-2xl px-4 py-3 text-sm">{messageFromCode(params.message)}</p> : null}
+        <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 tabIndex={-1} data-admin-page-title className="text-4xl font-black tracking-[-0.06em] outline-none">
+              分类管理
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-tertiary">控制前台大版块、排序和显示状态。删除分类前需要先处理分类下的站点。</p>
+          </div>
+          <LinkButton href={pageHref("/admin/categories", paginatedCategories.page, { new: 1 })} data-admin-new-category>
+            <Plus className="mr-2 size-4" />
+            新增分类
+          </LinkButton>
+        </div>
+        <AdminNotice code={params.message} />
       </header>
 
-      <section className="grid gap-5 xl:grid-cols-[420px_1fr]">
-        <div className="glass h-fit rounded-[2rem] p-5">
-          <h2 className="text-xl font-black tracking-tight">{editingCategory ? "编辑分类" : "新增分类"}</h2>
-          <ActionForm action={saveCategoryAction} className="mt-5 grid gap-4">
-            <input type="hidden" name="id" value={editingCategory?.id ?? 0} />
-            <Field label="分类名称">
-              <TextInput name="name" defaultValue={editingCategory?.name} placeholder="例如：开发文档" required />
-            </Field>
-            <Field label="描述">
-              <Textarea name="description" defaultValue={editingCategory?.description} placeholder="描述这个分类的用途" />
-            </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="标识">
-                <TextInput name="icon" defaultValue={editingCategory?.icon} placeholder="AI" maxLength={8} />
-              </Field>
-              <Field label="排序">
-                <TextInput name="sortOrder" type="number" min="0" max="9999" defaultValue={editingCategory?.sortOrder ?? 100} />
-              </Field>
-            </div>
-            <Checkbox name="isVisible" label="前台显示" defaultChecked={editingCategory?.isVisible ?? true} />
-            <div className="flex gap-3">
-              <SubmitButton>{editingCategory ? "保存分类" : "创建分类"}</SubmitButton>
-              {editingCategory ? (
-                <a href="/admin/categories" className="inline-flex items-center rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]">
-                  取消编辑
-                </a>
-              ) : null}
-            </div>
-          </ActionForm>
+      <section className="glass rounded-[2rem] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-black tracking-tight">分类列表</h2>
+          <span className="text-sm text-faint">{paginatedCategories.total} 个分类</span>
         </div>
 
-        <div className="glass rounded-[2rem] p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-black tracking-tight">分类列表</h2>
-            <span className="text-sm text-faint">{categories.length} 个分类</span>
-          </div>
-          <div className="mt-5 grid gap-3">
-            {categories.map((category) => {
-              const siteCount = countSitesByCategory(category.id);
-
-              return (
-                <div key={category.id} className="panel-soft rounded-3xl p-4">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <InitialMark label={category.icon || category.name} />
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-black tracking-tight">{category.name}</h3>
-                          <span className={category.isVisible ? "chip-success rounded-full px-2 py-1 text-xs" : "chip-danger rounded-full px-2 py-1 text-xs"}>
-                            {category.isVisible ? "显示" : "隐藏"}
-                          </span>
-                          <span className="chip rounded-full px-2 py-1 text-xs">{siteCount} 个站点</span>
-                        </div>
-                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-tertiary">{category.description || "无描述"}</p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 gap-2">
-                      <a href={`/admin/categories?edit=${category.id}`} className="rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]">
-                        编辑
-                      </a>
-                      <form action={deleteCategoryAction}>
-                        <input type="hidden" name="id" value={category.id} />
-                        <button className="rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-4 py-2 text-sm font-semibold text-[var(--danger)] transition hover:brightness-105">删除</button>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {paginatedCategories.total === 0 ? (
+          <EmptyState currentPage={paginatedCategories.page} />
+        ) : (
+          <>
+            <div className="mt-5 grid gap-3">
+              {categories.map((category) => (
+                <CategoryListItem
+                  key={category.id}
+                  category={category}
+                  siteCount={countSitesByCategory(category.id)}
+                  currentHref={currentHref}
+                  currentPage={paginatedCategories.page}
+                />
+              ))}
+            </div>
+            <Pagination basePath="/admin/categories" pagination={paginatedCategories} />
+          </>
+        )}
       </section>
+
+      {(isCreating || editingCategory) && (
+        <AdminModal
+          title={editingCategory ? "编辑分类" : "新增分类"}
+          description={editingCategory ? "调整分类名称、描述、排序和前台显示状态。" : "创建一个新的前台分组，用来组织站点。"}
+          basePath="/admin/categories"
+          closeHref={currentHref}
+          returnFocusSelector={editingCategory ? `[data-edit-category="${editingCategory.id}"]` : "[data-admin-new-category]"}
+          size="sm"
+        >
+          <CategoryForm category={editingCategory} returnTo={currentHref} />
+        </AdminModal>
+      )}
+    </div>
+  );
+}
+
+function CategoryForm({ category, returnTo }: { category?: Category; returnTo: string }) {
+  return (
+    <ActionForm action={saveCategoryAction} className="grid gap-4">
+      <input type="hidden" name="id" value={category?.id ?? 0} />
+      <input type="hidden" name="returnTo" value={returnTo} />
+      <Field label="分类名称">
+        <TextInput name="name" defaultValue={category?.name} placeholder="例如：开发文档" required data-autofocus />
+      </Field>
+      <Field label="描述">
+        <Textarea name="description" defaultValue={category?.description} placeholder="描述这个分类的用途" />
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="标识">
+          <TextInput name="icon" defaultValue={category?.icon} placeholder="AI" maxLength={8} />
+        </Field>
+        <Field label="排序">
+          <TextInput name="sortOrder" type="number" min="0" max="9999" defaultValue={category?.sortOrder ?? 100} />
+        </Field>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Checkbox name="isPinned" label="置顶显示" defaultChecked={category?.isPinned ?? false} />
+        <Checkbox name="isVisible" label="前台显示" defaultChecked={category?.isVisible ?? true} />
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <SubmitButton pendingText="正在保存...">{category ? "保存分类" : "创建分类"}</SubmitButton>
+        <AdminModalCloseButton />
+      </div>
+    </ActionForm>
+  );
+}
+
+function CategoryListItem({
+  category,
+  siteCount,
+  currentHref,
+  currentPage,
+}: {
+  category: Category;
+  siteCount: number;
+  currentHref: string;
+  currentPage: number;
+}) {
+  return (
+    <div className="panel-soft rounded-3xl p-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <InitialMark label={category.icon || category.name} />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-black tracking-tight">{category.name}</h3>
+              {category.isPinned ? <span className="chip-warning rounded-full px-2 py-1 text-xs">置顶</span> : null}
+              <span className={category.isVisible ? "chip-success rounded-full px-2 py-1 text-xs" : "chip-danger rounded-full px-2 py-1 text-xs"}>
+                {category.isVisible ? "显示" : "隐藏"}
+              </span>
+              <span className="chip rounded-full px-2 py-1 text-xs">{siteCount} 个站点</span>
+            </div>
+            <p className="mt-1 line-clamp-2 text-sm leading-6 text-tertiary">{category.description || "无描述"}</p>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <form action={toggleCategoryPinAction}>
+            <input type="hidden" name="id" value={category.id} />
+            <input type="hidden" name="returnTo" value={currentHref} />
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
+            >
+              {category.isPinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
+              {category.isPinned ? "取消置顶" : "置顶"}
+            </button>
+          </form>
+          <a
+            href={pageHref("/admin/categories", currentPage, { edit: category.id })}
+            data-edit-category={category.id}
+            className="rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
+          >
+            编辑
+          </a>
+          <ConfirmSubmitForm action={deleteCategoryAction} confirmMessage={`确定删除分类「${category.name}」吗？`} buttonText="删除" pendingText="正在删除...">
+            <input type="hidden" name="id" value={category.id} />
+            <input type="hidden" name="returnTo" value={currentHref} />
+          </ConfirmSubmitForm>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ currentPage }: { currentPage: number }) {
+  return (
+    <div className="panel-soft mt-5 grid place-items-center rounded-3xl px-5 py-12 text-center">
+      <InitialMark label="+" className="size-12" />
+      <h3 className="mt-4 text-xl font-black tracking-tight">还没有分类</h3>
+      <p className="mt-2 max-w-md text-sm leading-6 text-tertiary">先创建一个分类，再把站点放进去。后台会更清楚，前台也会更有秩序。</p>
+      <LinkButton href={pageHref("/admin/categories", currentPage, { new: 1 })} className="mt-5">
+        新增分类
+      </LinkButton>
+    </div>
+  );
+}
+
+function Pagination({
+  basePath,
+  pagination,
+}: {
+  basePath: "/admin/categories";
+  pagination: ReturnType<typeof listCategoriesPage>;
+}) {
+  const start = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
+  const end = Math.min(pagination.page * pagination.pageSize, pagination.total);
+
+  return (
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
+      <p className="text-sm text-faint">
+        第 {start}-{end} 条，共 {pagination.total} 条
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <LinkButton
+          href={pageHref(basePath, Math.max(1, pagination.page - 1))}
+          variant="secondary"
+          className={pagination.page <= 1 ? "pointer-events-none opacity-40" : undefined}
+        >
+          上一页
+        </LinkButton>
+        <span className="chip rounded-full px-3 py-2 text-sm">
+          {pagination.page} / {pagination.totalPages}
+        </span>
+        <LinkButton
+          href={pageHref(basePath, Math.min(pagination.totalPages, pagination.page + 1))}
+          variant="secondary"
+          className={pagination.page >= pagination.totalPages ? "pointer-events-none opacity-40" : undefined}
+        >
+          下一页
+        </LinkButton>
+      </div>
     </div>
   );
 }

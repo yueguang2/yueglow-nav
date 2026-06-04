@@ -65,6 +65,7 @@ export function SiteLinksEditor({ defaultLinks }: { defaultLinks: SiteLinkInput[
         <button
           type="button"
           onClick={() => setLinks((current) => [...current, createLink(current.length)])}
+          data-dirty-action
           className="focus-ring inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-3 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--panel-strong)]"
         >
           <Plus className="size-3.5" />
@@ -80,6 +81,7 @@ export function SiteLinksEditor({ defaultLinks }: { defaultLinks: SiteLinkInput[
               type="button"
               onClick={() => removeLink(link.key)}
               disabled={links.length === 1}
+              data-dirty-action
               className="focus-ring inline-flex items-center gap-1.5 rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-3 py-2 text-xs font-semibold text-[var(--danger)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Trash2 className="size-3.5" />

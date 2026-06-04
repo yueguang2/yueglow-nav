@@ -52,11 +52,15 @@ function SearchModalContent({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing) {
+        return;
+      }
+
       if (e.key === "Escape") {
         onClose();
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((prev) => Math.min(prev + 1, filteredSites.length - 1));
+        setSelectedIndex((prev) => Math.min(prev + 1, Math.max(filteredSites.length - 1, 0)));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((prev) => Math.max(prev - 1, 0));
@@ -86,7 +90,7 @@ function SearchModalContent({
       onClick={onClose}
     >
       <div
-        className="clay-card relative w-full max-w-2xl overflow-hidden rounded-[2rem] text-[var(--foreground)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+        className="clay-card relative z-10 w-full max-w-2xl overflow-hidden rounded-[2rem] text-[var(--foreground)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 border-b border-[var(--line)] px-6 py-4">

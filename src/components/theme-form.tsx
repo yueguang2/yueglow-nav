@@ -5,38 +5,43 @@ import { useState } from "react";
 import { ActionForm } from "@/components/action-form";
 import { SubmitButton } from "@/components/action-button";
 import { Checkbox, Field, TextInput, Textarea } from "@/components/ui";
+import { AdminModalCloseButton } from "@/components/admin-drawer";
 import { saveThemeAction } from "@/lib/actions";
+import type { AdminRoute } from "@/lib/admin-routing";
+import { OCEAN_THEME } from "@/lib/default-theme";
 import type { Theme } from "@/lib/types";
 import { ThemePreview } from "./theme-preview";
 
 type ThemeFormProps = {
   theme: Theme | null;
+  returnTo: AdminRoute;
+  defaultSlug?: string;
 };
 
-export function ThemeForm({ theme }: ThemeFormProps) {
+export function ThemeForm({ theme, returnTo, defaultSlug = "custom-theme" }: ThemeFormProps) {
   const [previewMode, setPreviewMode] = useState<"dark" | "light">("dark");
   const [formData, setFormData] = useState({
     name: theme?.name || "",
-    slug: theme?.slug || "",
+    slug: theme?.slug || defaultSlug,
     description: theme?.description || "",
-    darkBackground: theme?.darkBackground || "#080b12",
-    darkForeground: theme?.darkForeground || "#eef4ff",
-    darkAccent: theme?.darkAccent || "#76e4f7",
-    darkAccent2: theme?.darkAccent2 || "#d7ff72",
-    darkPanel: theme?.darkPanel || "#151921",
-    darkPanelStrong: theme?.darkPanelStrong || "#1d2230",
-    darkCardBg: theme?.darkCardBg || "#0f1218",
-    darkFieldBg: theme?.darkFieldBg || "#0a0d14",
-    lightBackground: theme?.lightBackground || "#f4f0e8",
-    lightForeground: theme?.lightForeground || "#101620",
-    lightAccent: theme?.lightAccent || "#0f6f7f",
-    lightAccent2: theme?.lightAccent2 || "#7a5f00",
-    lightPanel: theme?.lightPanel || "#e8e4dc",
-    lightPanelStrong: theme?.lightPanelStrong || "#ddd9d1",
-    lightCardBg: theme?.lightCardBg || "#f0ece4",
-    lightFieldBg: theme?.lightFieldBg || "#f8f4ec",
-    useBackdropBlur: theme?.useBackdropBlur ?? false,
-    useGradientGlow: theme?.useGradientGlow ?? true,
+    darkBackground: theme?.darkBackground || OCEAN_THEME.darkBackground,
+    darkForeground: theme?.darkForeground || OCEAN_THEME.darkForeground,
+    darkAccent: theme?.darkAccent || OCEAN_THEME.darkAccent,
+    darkAccent2: theme?.darkAccent2 || OCEAN_THEME.darkAccent2,
+    darkPanel: theme?.darkPanel || OCEAN_THEME.darkPanel,
+    darkPanelStrong: theme?.darkPanelStrong || OCEAN_THEME.darkPanelStrong,
+    darkCardBg: theme?.darkCardBg || OCEAN_THEME.darkCardBg,
+    darkFieldBg: theme?.darkFieldBg || OCEAN_THEME.darkFieldBg,
+    lightBackground: theme?.lightBackground || OCEAN_THEME.lightBackground,
+    lightForeground: theme?.lightForeground || OCEAN_THEME.lightForeground,
+    lightAccent: theme?.lightAccent || OCEAN_THEME.lightAccent,
+    lightAccent2: theme?.lightAccent2 || OCEAN_THEME.lightAccent2,
+    lightPanel: theme?.lightPanel || OCEAN_THEME.lightPanel,
+    lightPanelStrong: theme?.lightPanelStrong || OCEAN_THEME.lightPanelStrong,
+    lightCardBg: theme?.lightCardBg || OCEAN_THEME.lightCardBg,
+    lightFieldBg: theme?.lightFieldBg || OCEAN_THEME.lightFieldBg,
+    useBackdropBlur: theme?.useBackdropBlur ?? OCEAN_THEME.useBackdropBlur,
+    useGradientGlow: theme?.useGradientGlow ?? OCEAN_THEME.useGradientGlow,
     sortOrder: theme?.sortOrder || 100,
   });
 
@@ -53,20 +58,21 @@ export function ThemeForm({ theme }: ThemeFormProps) {
         .replace(/\s+/g, "-")
         .replace(/-+/g, "-")
         .trim();
-      handleChange("slug", slug);
+      handleChange("slug", slug || defaultSlug);
     }
   };
 
   return (
     <ActionForm action={saveThemeAction} className="grid gap-4">
       {theme && <input type="hidden" name="id" value={theme.id} />}
+      <input type="hidden" name="returnTo" value={returnTo} />
 
       <Field label="主题名称">
         <TextInput
           name="name"
           value={formData.name}
           onChange={(e) => handleNameChange(e.target.value)}
-          placeholder="例如：玻璃拟态"
+          placeholder="例如：我的主题"
           required
         />
       </Field>
@@ -76,7 +82,7 @@ export function ThemeForm({ theme }: ThemeFormProps) {
           name="slug"
           value={formData.slug}
           onChange={(e) => handleChange("slug", e.target.value)}
-          placeholder="例如：glass"
+          placeholder="例如：custom-ocean"
           pattern="[a-z0-9-]+"
           required
         />
@@ -265,14 +271,7 @@ export function ThemeForm({ theme }: ThemeFormProps) {
       {/* 操作 */}
       <div className="flex gap-3">
         <SubmitButton>{theme ? "保存主题" : "创建主题"}</SubmitButton>
-        {theme && (
-          <a
-            href="/admin/themes"
-            className="inline-flex items-center rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
-          >
-            取消编辑
-          </a>
-        )}
+        <AdminModalCloseButton />
       </div>
     </ActionForm>
   );

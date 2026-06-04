@@ -4,6 +4,7 @@ export type Category = {
   description: string;
   icon: string;
   sortOrder: number;
+  isPinned: boolean;
   isVisible: boolean;
   createdAt: string;
   updatedAt: string;
@@ -20,6 +21,7 @@ export type Site = {
   icon: string;
   isFavorite: boolean;
   isVisible: boolean;
+  isPinned: boolean;
   sortOrder: number;
   links: SiteLink[];
   linkCount: number;
@@ -53,8 +55,17 @@ export type SiteInput = {
   icon: string;
   isFavorite: boolean;
   isVisible: boolean;
+  isPinned: boolean;
   sortOrder: number;
   links: SiteLinkInput[];
+};
+
+export type PaginatedResult<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };
 
 export type AdminUser = {

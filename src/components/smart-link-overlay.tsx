@@ -186,6 +186,7 @@ export function SmartLink({
   className,
   style,
   children,
+  onClick,
   ...props
 }: {
   siteId: number;
@@ -205,6 +206,8 @@ export function SmartLink({
       className={className}
       style={style}
       onClick={(event) => {
+        onClick?.(event);
+
         if (!context || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
           return;
         }

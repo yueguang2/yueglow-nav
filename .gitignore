@@ -18,6 +18,12 @@
 
 # local porting workflow state
 /.pipeline/
+/node_npm/
+/node_system/
+/npm.cmd
+/start-dev.cmd
+/tsconfig.tsbuildinfo
+/dev-server*.log
 
 # misc
 .DS_Store

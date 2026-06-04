@@ -36,7 +36,7 @@ export default function AdminDashboardPage() {
             <LinkButton href="/" variant="secondary">
               查看前台
             </LinkButton>
-            <LinkButton href="/admin/sites">添加站点</LinkButton>
+            <LinkButton href="/admin/sites?new=1">添加站点</LinkButton>
           </div>
         </div>
       </header>

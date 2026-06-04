@@ -1,6 +1,7 @@
 "use client";
 
 import { Link2, Star } from "lucide-react";
+import { OCEAN_THEME } from "@/lib/default-theme";
 import type { Theme } from "@/lib/types";
 
 type ThemePreviewProps = {
@@ -10,23 +11,23 @@ type ThemePreviewProps = {
 
 export function ThemePreview({ theme, mode }: ThemePreviewProps) {
   const cssVars = mode === "dark" ? {
-    "--background": theme.darkBackground || "#080b12",
-    "--foreground": theme.darkForeground || "#eef4ff",
-    "--accent": theme.darkAccent || "#76e4f7",
-    "--accent-2": theme.darkAccent2 || "#d7ff72",
-    "--panel": theme.darkPanel || "#151921",
-    "--panel-strong": theme.darkPanelStrong || "#1d2230",
-    "--card-bg": theme.darkCardBg || "#0f1218",
-    "--field-bg": theme.darkFieldBg || "#0a0d14",
+    "--background": theme.darkBackground || OCEAN_THEME.darkBackground,
+    "--foreground": theme.darkForeground || OCEAN_THEME.darkForeground,
+    "--accent": theme.darkAccent || OCEAN_THEME.darkAccent,
+    "--accent-2": theme.darkAccent2 || OCEAN_THEME.darkAccent2,
+    "--panel": theme.darkPanel || OCEAN_THEME.darkPanel,
+    "--panel-strong": theme.darkPanelStrong || OCEAN_THEME.darkPanelStrong,
+    "--card-bg": theme.darkCardBg || OCEAN_THEME.darkCardBg,
+    "--field-bg": theme.darkFieldBg || OCEAN_THEME.darkFieldBg,
   } : {
-    "--background": theme.lightBackground || "#f4f0e8",
-    "--foreground": theme.lightForeground || "#101620",
-    "--accent": theme.lightAccent || "#0f6f7f",
-    "--accent-2": theme.lightAccent2 || "#7a5f00",
-    "--panel": theme.lightPanel || "#e8e4dc",
-    "--panel-strong": theme.lightPanelStrong || "#ddd9d1",
-    "--card-bg": theme.lightCardBg || "#f0ece4",
-    "--field-bg": theme.lightFieldBg || "#f8f4ec",
+    "--background": theme.lightBackground || OCEAN_THEME.lightBackground,
+    "--foreground": theme.lightForeground || OCEAN_THEME.lightForeground,
+    "--accent": theme.lightAccent || OCEAN_THEME.lightAccent,
+    "--accent-2": theme.lightAccent2 || OCEAN_THEME.lightAccent2,
+    "--panel": theme.lightPanel || OCEAN_THEME.lightPanel,
+    "--panel-strong": theme.lightPanelStrong || OCEAN_THEME.lightPanelStrong,
+    "--card-bg": theme.lightCardBg || OCEAN_THEME.lightCardBg,
+    "--field-bg": theme.lightFieldBg || OCEAN_THEME.lightFieldBg,
   };
 
   const useBlur = theme.useBackdropBlur ?? false;

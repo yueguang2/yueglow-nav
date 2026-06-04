@@ -19,6 +19,7 @@ export const categorySchema = z.object({
   description: z.string().trim().max(120, "描述不能超过 120 个字符").default(""),
   icon: z.string().trim().max(8, "标识不能超过 8 个字符").default(""),
   sortOrder: z.coerce.number().int().min(0).max(9999).default(100),
+  isPinned: z.coerce.boolean().default(false),
   isVisible: z.coerce.boolean().default(false),
 });
 
@@ -44,6 +45,7 @@ export const siteSchema = z
   icon: z.string().trim().max(8, "标识不能超过 8 个字符").default(""),
   sortOrder: z.coerce.number().int().min(0).max(9999).default(100),
   isFavorite: z.coerce.boolean().default(false),
+  isPinned: z.coerce.boolean().default(false),
   isVisible: z.coerce.boolean().default(false),
   links: z.array(siteLinkSchema).min(1, "请至少添加一条链接"),
 })

@@ -1,15 +1,38 @@
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
-import type { AdminUser, Category, Session, Site, SiteInput, SiteLink, Theme } from "./types";
+import { OCEAN_THEME } from "./default-theme";
+import type { AdminUser, Category, PaginatedResult, Session, Site, SiteInput, SiteLink, Theme } from "./types";
 
 const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(process.cwd(), "data");
 const dbPath = path.join(dataDir, "nav-site.db");
 
 let db: Database.Database | undefined;
 
+const removedPresetThemeSlugs = ["clay", "glass", "purple", "forest", "sunset"] as const;
+
 function bool(value: number | boolean) {
   return Boolean(value);
+}
+
+function normalizePagination(page: number, pageSize: number, total: number) {
+  const safePageSize = Math.max(1, pageSize);
+  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  const safePage = Number.isInteger(page) && page > 0 ? Math.min(page, totalPages) : 1;
+  const offset = (safePage - 1) * safePageSize;
+
+  return { page: safePage, pageSize: safePageSize, totalPages, offset };
+}
+
+function hasColumn(database: Database.Database, tableName: "categories" | "sites", columnName: string) {
+  const rows = database.prepare(`PRAGMA table_info(${tableName})`).all() as { name: string }[];
+  return rows.some((row) => row.name === columnName);
+}
+
+function ensureColumn(database: Database.Database, tableName: "categories" | "sites", columnName: string, definition: string) {
+  if (!hasColumn(database, tableName, columnName)) {
+    database.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
 }
 
 function mapCategory(row: Record<string, unknown>): Category {
@@ -19,6 +42,7 @@ function mapCategory(row: Record<string, unknown>): Category {
     description: String(row.description ?? ""),
     icon: String(row.icon ?? ""),
     sortOrder: Number(row.sort_order),
+    isPinned: bool(Number(row.is_pinned ?? 0)),
     isVisible: bool(Number(row.is_visible)),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -41,6 +65,7 @@ function mapSite(row: Record<string, unknown>, links?: SiteLink[]): Site {
     icon: String(row.icon ?? ""),
     isFavorite: bool(Number(row.is_favorite)),
     isVisible: bool(Number(row.is_visible)),
+    isPinned: bool(Number(row.is_pinned ?? 0)),
     sortOrder: Number(row.sort_order),
     links: siteLinks,
     linkCount: enabledLinks.length,
@@ -93,6 +118,61 @@ function mapTheme(row: Record<string, unknown>): Theme {
   };
 }
 
+function insertOceanTheme(database: Database.Database, isActive: boolean) {
+  return database
+    .prepare(
+      `
+      INSERT INTO themes (
+        name, slug, description,
+        dark_background, dark_foreground, dark_accent, dark_accent_2,
+        dark_panel, dark_panel_strong, dark_card_bg, dark_field_bg,
+        light_background, light_foreground, light_accent, light_accent_2,
+        light_panel, light_panel_strong, light_card_bg, light_field_bg,
+        use_backdrop_blur, use_gradient_glow, is_active, sort_order
+      ) VALUES (
+        @name, @slug, @description,
+        @darkBackground, @darkForeground, @darkAccent, @darkAccent2,
+        @darkPanel, @darkPanelStrong, @darkCardBg, @darkFieldBg,
+        @lightBackground, @lightForeground, @lightAccent, @lightAccent2,
+        @lightPanel, @lightPanelStrong, @lightCardBg, @lightFieldBg,
+        @useBackdropBlur, @useGradientGlow, @isActive, @sortOrder
+      )
+    `,
+    )
+    .run({
+      ...OCEAN_THEME,
+      useBackdropBlur: OCEAN_THEME.useBackdropBlur ? 1 : 0,
+      useGradientGlow: OCEAN_THEME.useGradientGlow ? 1 : 0,
+      isActive: isActive ? 1 : 0,
+    });
+}
+
+function ensureOceanTheme(database: Database.Database) {
+  const transaction = database.transaction(() => {
+    const activeBeforeCleanup = database.prepare("SELECT slug FROM themes WHERE is_active = 1").get() as { slug: string } | undefined;
+
+    for (const slug of removedPresetThemeSlugs) {
+      database.prepare("DELETE FROM themes WHERE slug = ?").run(slug);
+    }
+
+    const activeWasRemoved = activeBeforeCleanup ? removedPresetThemeSlugs.includes(activeBeforeCleanup.slug as (typeof removedPresetThemeSlugs)[number]) : false;
+    const existingOcean = database.prepare("SELECT id FROM themes WHERE slug = 'ocean'").get() as { id: number } | undefined;
+
+    if (!existingOcean) {
+      insertOceanTheme(database, false);
+    }
+
+    const activeCount = database.prepare("SELECT COUNT(*) AS count FROM themes WHERE is_active = 1").get() as { count: number };
+
+    if (activeWasRemoved || activeCount.count === 0) {
+      database.prepare("UPDATE themes SET is_active = 0").run();
+      database.prepare("UPDATE themes SET is_active = 1 WHERE slug = 'ocean'").run();
+    }
+  });
+
+  transaction();
+}
+
 function migrate(database: Database.Database) {
   database.pragma("journal_mode = WAL");
   database.pragma("foreign_keys = ON");
@@ -119,6 +199,7 @@ function migrate(database: Database.Database) {
       description TEXT NOT NULL DEFAULT '',
       icon TEXT NOT NULL DEFAULT '',
       sort_order INTEGER NOT NULL DEFAULT 100,
+      is_pinned INTEGER NOT NULL DEFAULT 0,
       is_visible INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -133,6 +214,7 @@ function migrate(database: Database.Database) {
       icon TEXT NOT NULL DEFAULT '',
       is_favorite INTEGER NOT NULL DEFAULT 0,
       is_visible INTEGER NOT NULL DEFAULT 1,
+      is_pinned INTEGER NOT NULL DEFAULT 0,
       sort_order INTEGER NOT NULL DEFAULT 100,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -181,6 +263,9 @@ function migrate(database: Database.Database) {
     );
   `);
 
+  ensureColumn(database, "categories", "is_pinned", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(database, "sites", "is_pinned", "INTEGER NOT NULL DEFAULT 0");
+
   const sitesWithoutLinks = database
     .prepare(
       `
@@ -207,85 +292,7 @@ function migrate(database: Database.Database) {
     transaction();
   }
 
-  // 初始化预设主题
-  const themeCount = database.prepare("SELECT COUNT(*) as count FROM themes").get() as { count: number };
-
-  if (themeCount.count === 0) {
-    const insertTheme = database.prepare(`
-      INSERT INTO themes (
-        name, slug, description,
-        dark_background, dark_foreground, dark_accent, dark_accent_2,
-        dark_panel, dark_panel_strong, dark_card_bg, dark_field_bg,
-        light_background, light_foreground, light_accent, light_accent_2,
-        light_panel, light_panel_strong, light_card_bg, light_field_bg,
-        use_backdrop_blur, use_gradient_glow, is_active, sort_order
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const themeTransaction = database.transaction(() => {
-      // 黏土拟态主题（当前激活）
-      insertTheme.run(
-        "黏土拟态", "clay", "黏土拟态风格，实心背景和浮雕阴影",
-        "#080b12", "#eef4ff", "#76e4f7", "#d7ff72",
-        "#151921", "#1d2230", "#0f1218", "#0a0d14",
-        "#f4f0e8", "#101620", "#0f6f7f", "#7a5f00",
-        "#e8e4dc", "#ddd9d1", "#f0ece4", "#f8f4ec",
-        0, 1, 1, 10
-      );
-
-      // 玻璃拟态主题
-      insertTheme.run(
-        "玻璃拟态", "glass", "玻璃拟态风格，半透明背景和模糊效果",
-        "#080b12", "#eef4ff", "#76e4f7", "#d7ff72",
-        "rgba(255, 255, 255, 0.08)", "rgba(255, 255, 255, 0.14)", "rgba(8, 11, 18, 0.58)", "rgba(2, 6, 23, 0.45)",
-        "#f4f0e8", "#101620", "#0f6f7f", "#7a5f00",
-        "rgba(255, 255, 255, 0.62)", "rgba(255, 255, 255, 0.88)", "rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.72)",
-        1, 1, 0, 20
-      );
-
-      // 海洋蓝主题
-      insertTheme.run(
-        "海洋蓝", "ocean", "深海蓝调，沉稳专业的配色方案",
-        "#0a1628", "#e8f4f8", "#4fc3f7", "#26c6da",
-        "#1a2332", "#243447", "#121e2e", "#0d1621",
-        "#f0f4f8", "#1a2332", "#0277bd", "#0097a7",
-        "#e3eaf0", "#d8dfe6", "#eef2f6", "#f5f7fa",
-        0, 1, 0, 30
-      );
-
-      // 紫色梦境主题
-      insertTheme.run(
-        "紫色梦境", "purple", "紫色梦幻，优雅神秘的视觉体验",
-        "#1a0d2e", "#f3e8ff", "#b794f6", "#e879f9",
-        "#2d1b4e", "#3d2663", "#1f1139", "#150a26",
-        "#faf5ff", "#1a0d2e", "#7c3aed", "#c026d3",
-        "#f3e8ff", "#ede9fe", "#f5f3ff", "#faf8ff",
-        0, 1, 0, 40
-      );
-
-      // 森林绿主题
-      insertTheme.run(
-        "森林绿", "forest", "森林绿意，自然清新的配色",
-        "#0d1f12", "#e8f5e9", "#66bb6a", "#9ccc65",
-        "#1a2e1f", "#243d2a", "#111f15", "#0a1a0e",
-        "#f1f8f4", "#0d1f12", "#2e7d32", "#558b2f",
-        "#e8f5e9", "#dcedc8", "#f1f8e9", "#f9fbe7",
-        0, 1, 0, 50
-      );
-
-      // 日落橙主题
-      insertTheme.run(
-        "日落橙", "sunset", "日落橙红，温暖活力的色调",
-        "#1f0f0a", "#fff3e0", "#ff9800", "#ff5722",
-        "#2e1a12", "#3d2418", "#1a0f0a", "#140a06",
-        "#fff8f0", "#1f0f0a", "#e65100", "#d84315",
-        "#ffe8d6", "#ffd4b8", "#fff3e0", "#fffaf5",
-        0, 1, 0, 60
-      );
-    });
-
-    themeTransaction();
-  }
+  ensureOceanTheme(database);
 }
 
 function seed(database: Database.Database) {
@@ -296,13 +303,13 @@ function seed(database: Database.Database) {
   }
 
   const insertCategory = database.prepare(`
-    INSERT INTO categories (name, description, icon, sort_order, is_visible)
-    VALUES (@name, @description, @icon, @sortOrder, 1)
+    INSERT INTO categories (name, description, icon, sort_order, is_pinned, is_visible)
+    VALUES (@name, @description, @icon, @sortOrder, 0, 1)
   `);
 
   const insertSite = database.prepare(`
-    INSERT INTO sites (category_id, name, url, description, icon, sort_order, is_favorite, is_visible)
-    VALUES (@categoryId, @name, @url, @description, @icon, @sortOrder, @isFavorite, 1)
+    INSERT INTO sites (category_id, name, url, description, icon, sort_order, is_favorite, is_pinned, is_visible)
+    VALUES (@categoryId, @name, @url, @description, @icon, @sortOrder, @isFavorite, 0, 1)
   `);
 
   const insertLink = database.prepare(`
@@ -450,12 +457,37 @@ export function listCategories({ includeHidden = false } = {}) {
       `
       SELECT * FROM categories
       ${includeHidden ? "" : "WHERE is_visible = 1"}
-      ORDER BY sort_order ASC, id ASC
+      ORDER BY is_pinned DESC, sort_order ASC, id ASC
     `,
     )
     .all() as Record<string, unknown>[];
 
   return rows.map(mapCategory);
+}
+
+export function listCategoriesPage({ includeHidden = false, page = 1, pageSize = 12 } = {}): PaginatedResult<Category> {
+  const whereClause = includeHidden ? "" : "WHERE is_visible = 1";
+  const totalRow = getDb().prepare(`SELECT COUNT(*) AS count FROM categories ${whereClause}`).get() as { count: number };
+  const pagination = normalizePagination(page, pageSize, totalRow.count);
+  const rows = getDb()
+    .prepare(
+      `
+      SELECT *
+      FROM categories
+      ${whereClause}
+      ORDER BY is_pinned DESC, sort_order ASC, id ASC
+      LIMIT ? OFFSET ?
+    `,
+    )
+    .all(pagination.pageSize, pagination.offset) as Record<string, unknown>[];
+
+  return {
+    items: rows.map(mapCategory),
+    total: totalRow.count,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+    totalPages: pagination.totalPages,
+  };
 }
 
 export function getCategoryById(id: number) {
@@ -467,11 +499,11 @@ export function createCategory(input: Omit<Category, "id" | "createdAt" | "updat
   return getDb()
     .prepare(
       `
-      INSERT INTO categories (name, description, icon, sort_order, is_visible)
-      VALUES (@name, @description, @icon, @sortOrder, @isVisible)
+      INSERT INTO categories (name, description, icon, sort_order, is_pinned, is_visible)
+      VALUES (@name, @description, @icon, @sortOrder, @isPinned, @isVisible)
     `,
     )
-    .run({ ...input, isVisible: input.isVisible ? 1 : 0 });
+    .run({ ...input, isPinned: input.isPinned ? 1 : 0, isVisible: input.isVisible ? 1 : 0 });
 }
 
 export function updateCategory(id: number, input: Omit<Category, "id" | "createdAt" | "updatedAt">) {
@@ -483,12 +515,19 @@ export function updateCategory(id: number, input: Omit<Category, "id" | "created
           description = @description,
           icon = @icon,
           sort_order = @sortOrder,
+          is_pinned = @isPinned,
           is_visible = @isVisible,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = @id
     `,
     )
-    .run({ id, ...input, isVisible: input.isVisible ? 1 : 0 });
+    .run({ id, ...input, isPinned: input.isPinned ? 1 : 0, isVisible: input.isVisible ? 1 : 0 });
+}
+
+export function updateCategoryPinned(id: number, isPinned: boolean) {
+  return getDb()
+    .prepare("UPDATE categories SET is_pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+    .run(isPinned ? 1 : 0, id);
 }
 
 export function deleteCategory(id: number) {
@@ -514,11 +553,15 @@ export function listSites({ includeHidden = false } = {}) {
              AND categories.is_visible = 1
              AND EXISTS (SELECT 1 FROM site_links WHERE site_links.site_id = sites.id AND site_links.is_enabled = 1)`
       }
-      ORDER BY sites.is_favorite DESC, categories.sort_order ASC, sites.sort_order ASC, sites.id ASC
+      ORDER BY sites.is_pinned DESC, sites.is_favorite DESC, categories.sort_order ASC, sites.sort_order ASC, sites.id ASC
     `,
     )
     .all() as Record<string, unknown>[];
 
+  return mapSiteRowsWithLinks(rows);
+}
+
+function mapSiteRowsWithLinks(rows: Record<string, unknown>[]) {
   if (rows.length === 0) return [];
 
   const siteIds = rows.map((row) => Number(row.id));
@@ -543,6 +586,46 @@ export function listSites({ includeHidden = false } = {}) {
   }
 
   return rows.map((row) => mapSite(row, linksBySiteId.get(Number(row.id)) || []));
+}
+
+export function listSitesPage({ includeHidden = false, page = 1, pageSize = 10 } = {}): PaginatedResult<Site> {
+  const whereClause = includeHidden
+    ? ""
+    : `WHERE sites.is_visible = 1
+       AND categories.is_visible = 1
+       AND EXISTS (SELECT 1 FROM site_links WHERE site_links.site_id = sites.id AND site_links.is_enabled = 1)`;
+
+  const totalRow = getDb()
+    .prepare(
+      `
+      SELECT COUNT(*) AS count
+      FROM sites
+      JOIN categories ON categories.id = sites.category_id
+      ${whereClause}
+    `,
+    )
+    .get() as { count: number };
+  const pagination = normalizePagination(page, pageSize, totalRow.count);
+  const rows = getDb()
+    .prepare(
+      `
+      SELECT sites.*, categories.name AS category_name
+      FROM sites
+      JOIN categories ON categories.id = sites.category_id
+      ${whereClause}
+      ORDER BY sites.is_pinned DESC, sites.is_favorite DESC, categories.sort_order ASC, sites.sort_order ASC, sites.id ASC
+      LIMIT ? OFFSET ?
+    `,
+    )
+    .all(pagination.pageSize, pagination.offset) as Record<string, unknown>[];
+
+  return {
+    items: mapSiteRowsWithLinks(rows),
+    total: totalRow.count,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+    totalPages: pagination.totalPages,
+  };
 }
 
 export function listSiteLinksForSite(siteId: number, includeDisabled = false) {
@@ -588,7 +671,7 @@ export function listFavoriteSites() {
         AND sites.is_favorite = 1
         AND categories.is_visible = 1
         AND EXISTS (SELECT 1 FROM site_links WHERE site_links.site_id = sites.id AND site_links.is_enabled = 1)
-      ORDER BY sites.sort_order ASC, sites.id ASC
+      ORDER BY sites.is_pinned DESC, sites.sort_order ASC, sites.id ASC
     `,
     )
     .all() as Record<string, unknown>[];
@@ -651,14 +734,15 @@ export function createSite(input: SiteInput) {
     const result = database
       .prepare(
         `
-        INSERT INTO sites (category_id, name, url, description, icon, sort_order, is_favorite, is_visible)
-        VALUES (@categoryId, @name, @url, @description, @icon, @sortOrder, @isFavorite, @isVisible)
+        INSERT INTO sites (category_id, name, url, description, icon, sort_order, is_favorite, is_pinned, is_visible)
+        VALUES (@categoryId, @name, @url, @description, @icon, @sortOrder, @isFavorite, @isPinned, @isVisible)
       `,
       )
       .run({
         ...input,
         url: mainLink.url,
         isFavorite: input.isFavorite ? 1 : 0,
+        isPinned: input.isPinned ? 1 : 0,
         isVisible: input.isVisible ? 1 : 0,
       });
 
@@ -686,6 +770,7 @@ export function updateSite(id: number, input: SiteInput) {
           icon = @icon,
           sort_order = @sortOrder,
           is_favorite = @isFavorite,
+          is_pinned = @isPinned,
           is_visible = @isVisible,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = @id
@@ -696,6 +781,7 @@ export function updateSite(id: number, input: SiteInput) {
         ...input,
         url: mainLink.url,
         isFavorite: input.isFavorite ? 1 : 0,
+        isPinned: input.isPinned ? 1 : 0,
         isVisible: input.isVisible ? 1 : 0,
       });
 
@@ -708,6 +794,12 @@ export function updateSite(id: number, input: SiteInput) {
 
 export function deleteSite(id: number) {
   return getDb().prepare("DELETE FROM sites WHERE id = ?").run(id);
+}
+
+export function updateSitePinned(id: number, isPinned: boolean) {
+  return getDb()
+    .prepare("UPDATE sites SET is_pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+    .run(isPinned ? 1 : 0, id);
 }
 
 // Theme functions
@@ -723,9 +815,18 @@ export function getThemeById(id: number) {
   return row ? mapTheme(row) : undefined;
 }
 
+export function getThemeBySlug(slug: string) {
+  const row = getDb().prepare("SELECT * FROM themes WHERE slug = ?").get(slug) as Record<string, unknown> | undefined;
+  return row ? mapTheme(row) : undefined;
+}
+
 export function getActiveTheme() {
   const row = getDb().prepare("SELECT * FROM themes WHERE is_active = 1").get() as Record<string, unknown> | undefined;
   return row ? mapTheme(row) : undefined;
+}
+
+export function ensureDefaultTheme() {
+  ensureOceanTheme(getDb());
 }
 
 export function createTheme(input: Omit<Theme, "id" | "createdAt" | "updatedAt">) {

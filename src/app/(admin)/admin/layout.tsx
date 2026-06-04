@@ -1,18 +1,11 @@
 export const dynamic = 'force-dynamic';
 
-import clsx from "clsx";
-import { BarChart3, FolderKanban, Globe2, LayoutDashboard, LogOut, Palette } from "lucide-react";
+import { BarChart3, LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/actions";
 import { getCurrentAdmin } from "@/lib/auth";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-
-const navItems = [
-  { href: "/admin", label: "仪表盘", icon: LayoutDashboard },
-  { href: "/admin/categories", label: "分类管理", icon: FolderKanban },
-  { href: "/admin/sites", label: "站点管理", icon: Globe2 },
-  { href: "/admin/themes", label: "主题设置", icon: Palette },
-];
+import { AdminNav } from "@/components/admin-nav";
 
 export default async function AdminLayout({
   children,
@@ -39,24 +32,7 @@ export default async function AdminLayout({
             </div>
           </div>
 
-          <nav className="mt-6 grid gap-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-
-              return (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className={clsx(
-                    "focus-ring flex items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-sm font-semibold text-secondary transition-all duration-200 hover:border-[var(--line)] hover:bg-[var(--control-bg)] hover:text-[var(--foreground)] hover:scale-[1.02]",
-                  )}
-                >
-                  <Icon className="size-4 transition-transform duration-200 group-hover:scale-110" />
-                  {item.label}
-                </a>
-              );
-            })}
-          </nav>
+          <AdminNav />
 
           <div className="mt-6">
             <ThemeSwitcher compact />

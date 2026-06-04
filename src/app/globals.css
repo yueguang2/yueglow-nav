@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #080b12;
-  --foreground: #eef4ff;
+  --background: #0a1628;
+  --foreground: #e8f4f8;
   --muted: #8f9bb0;
   --text-secondary: rgba(238, 244, 255, 0.72);
   --text-tertiary: rgba(238, 244, 255, 0.52);
   --text-faint: rgba(238, 244, 255, 0.36);
   --line: rgba(238, 244, 255, 0.12);
-  --panel: #151921;
-  --panel-strong: #1d2230;
-  --control-bg: #151921;
-  --card-bg: #0f1218;
-  --field-bg: #0a0d14;
+  --panel: #1a2332;
+  --panel-strong: #243447;
+  --control-bg: #1a2332;
+  --card-bg: #121e2e;
+  --field-bg: #0d1621;
   --soft-text: rgba(238, 244, 255, 0.58);
 
   /* Claymorphism 阴影系统 - 更柔和自然 */
@@ -48,9 +48,9 @@
   --radius-xl: 2.5rem;
   --radius-full: 9999px;
 
-  --accent: #76e4f7;
+  --accent: #4fc3f7;
   --accent-foreground: #071018;
-  --accent-2: #d7ff72;
+  --accent-2: #26c6da;
   --danger: #ff6b8a;
   --danger-soft: rgba(255, 107, 138, 0.15);
   --success: #8ff5d2;
@@ -60,19 +60,19 @@
 }
 
 :root[data-theme="light"] {
-  --background: #f4f0e8;
-  --foreground: #101620;
-  --muted: #687284;
-  --text-secondary: rgba(16, 22, 32, 0.72);
-  --text-tertiary: rgba(16, 22, 32, 0.52);
-  --text-faint: rgba(16, 22, 32, 0.36);
-  --line: rgba(16, 22, 32, 0.12);
-  --panel: #e8e4dc;
-  --panel-strong: #ddd9d1;
-  --control-bg: #e8e4dc;
-  --card-bg: #f0ece4;
-  --field-bg: #f8f4ec;
-  --soft-text: rgba(16, 22, 32, 0.58);
+  --background: #f0f4f8;
+  --foreground: #1a2332;
+  --muted: #66798a;
+  --text-secondary: rgba(26, 35, 50, 0.72);
+  --text-tertiary: rgba(26, 35, 50, 0.52);
+  --text-faint: rgba(26, 35, 50, 0.36);
+  --line: rgba(26, 35, 50, 0.12);
+  --panel: #e3eaf0;
+  --panel-strong: #d8dfe6;
+  --control-bg: #e3eaf0;
+  --card-bg: #eef2f6;
+  --field-bg: #f5f7fa;
+  --soft-text: rgba(26, 35, 50, 0.58);
 
   /* 浅色主题 Claymorphism 阴影系统 - 更柔和 */
   --shadow-subtle:
@@ -100,9 +100,9 @@
   --elevated-shadow: var(--shadow-md);
   --elevated-shadow-hover: var(--shadow-lg);
 
-  --accent: #0f6f7f;
+  --accent: #0277bd;
   --accent-foreground: #ffffff;
-  --accent-2: #7a5f00;
+  --accent-2: #0097a7;
   --danger: #c73355;
   --danger-soft: rgba(199, 51, 85, 0.12);
   --success: #13765e;
@@ -122,9 +122,9 @@ html {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 20% 15%, rgba(118, 228, 247, 0.08), transparent 32rem),
-    radial-gradient(circle at 78% 8%, rgba(215, 255, 114, 0.06), transparent 26rem),
-    radial-gradient(circle at 55% 85%, rgba(95, 108, 255, 0.07), transparent 34rem),
+    radial-gradient(circle at 20% 15%, rgba(79, 195, 247, 0.08), transparent 32rem),
+    radial-gradient(circle at 78% 8%, rgba(38, 198, 218, 0.06), transparent 26rem),
+    radial-gradient(circle at 55% 85%, rgba(2, 119, 189, 0.07), transparent 34rem),
     var(--background);
   color: var(--foreground);
   font-family:
@@ -283,7 +283,7 @@ textarea {
   outline: none;
   box-shadow:
     var(--shadow-subtle),
-    0 0 0 3px rgba(118, 228, 247, 0.2);
+    0 0 0 3px rgba(79, 195, 247, 0.2);
 }
 
 .chip {
@@ -332,7 +332,7 @@ textarea {
 
 .focus-ring:focus-visible {
   box-shadow:
-    0 0 0 3px rgba(118, 228, 247, 0.25),
+    0 0 0 3px rgba(79, 195, 247, 0.25),
     var(--shadow-sm);
 }
 

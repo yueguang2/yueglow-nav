@@ -5,6 +5,11 @@ export function generateThemeCSS(theme: Theme): string {
     :root {
       --background: ${theme.darkBackground};
       --foreground: ${theme.darkForeground};
+      --muted: color-mix(in srgb, ${theme.darkForeground} 58%, ${theme.darkBackground});
+      --text-secondary: color-mix(in srgb, ${theme.darkForeground} 72%, transparent);
+      --text-tertiary: color-mix(in srgb, ${theme.darkForeground} 52%, transparent);
+      --text-faint: color-mix(in srgb, ${theme.darkForeground} 36%, transparent);
+      --soft-text: color-mix(in srgb, ${theme.darkForeground} 58%, transparent);
       --accent: ${theme.darkAccent};
       --accent-2: ${theme.darkAccent2};
       --panel: ${theme.darkPanel};
@@ -19,6 +24,11 @@ export function generateThemeCSS(theme: Theme): string {
     :root[data-theme="light"] {
       --background: ${theme.lightBackground};
       --foreground: ${theme.lightForeground};
+      --muted: color-mix(in srgb, ${theme.lightForeground} 58%, ${theme.lightBackground});
+      --text-secondary: color-mix(in srgb, ${theme.lightForeground} 72%, transparent);
+      --text-tertiary: color-mix(in srgb, ${theme.lightForeground} 52%, transparent);
+      --text-faint: color-mix(in srgb, ${theme.lightForeground} 36%, transparent);
+      --soft-text: color-mix(in srgb, ${theme.lightForeground} 58%, transparent);
       --accent: ${theme.lightAccent};
       --accent-2: ${theme.lightAccent2};
       --panel: ${theme.lightPanel};

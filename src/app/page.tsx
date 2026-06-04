@@ -7,10 +7,12 @@ function groupSites() {
   const categories = listCategories();
   const sites = listSites();
 
-  return categories.map((category) => ({
-    ...category,
-    sites: sites.filter((site) => site.categoryId === category.id),
-  }));
+  return categories
+    .map((category) => ({
+      ...category,
+      sites: sites.filter((site) => site.categoryId === category.id),
+    }))
+    .filter((category) => category.sites.length > 0);
 }
 
 export default function Home() {

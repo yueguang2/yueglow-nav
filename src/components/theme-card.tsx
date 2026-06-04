@@ -1,14 +1,18 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { activateThemeAction } from "@/lib/actions";
+import { useFormStatus } from "react-dom";
+import { activateThemeAction, deleteThemeAction } from "@/lib/actions";
+import { ConfirmSubmitForm } from "@/components/confirm-submit-form";
+import { pageHref, type AdminRoute } from "@/lib/admin-routing";
 import type { Theme } from "@/lib/types";
 
 type ThemeCardProps = {
   theme: Theme;
+  returnTo: AdminRoute;
 };
 
-export function ThemeCard({ theme }: ThemeCardProps) {
+export function ThemeCard({ theme, returnTo }: ThemeCardProps) {
   return (
     <div className="panel-soft rounded-3xl p-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -56,7 +60,14 @@ export function ThemeCard({ theme }: ThemeCardProps) {
           </div>
         </div>
 
-        <div className="flex shrink-0">
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <a
+            href={pageHref("/admin/themes", 1, { edit: theme.id })}
+            data-edit-theme={theme.id}
+            className="rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
+          >
+            编辑
+          </a>
           {theme.isActive ? (
             <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] px-4 py-2 text-sm font-semibold text-faint">
               当前主题
@@ -64,16 +75,36 @@ export function ThemeCard({ theme }: ThemeCardProps) {
           ) : (
             <form action={activateThemeAction}>
               <input type="hidden" name="id" value={theme.id} />
-              <button
-                type="submit"
-                className="rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
-              >
-                激活主题
-              </button>
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <ActivateThemeButton />
             </form>
           )}
+          <ConfirmSubmitForm
+            action={deleteThemeAction}
+            confirmMessage={`确定删除主题「${theme.name}」吗？`}
+            buttonText="删除"
+            pendingText="正在删除..."
+            buttonClassName={theme.isActive ? "opacity-50" : undefined}
+          >
+            <input type="hidden" name="id" value={theme.id} />
+            <input type="hidden" name="returnTo" value={returnTo} />
+          </ConfirmSubmitForm>
         </div>
       </div>
     </div>
+  );
+}
+
+function ActivateThemeButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {pending ? "正在激活..." : "激活主题"}
+    </button>
   );
 }

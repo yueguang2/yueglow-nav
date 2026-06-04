@@ -1,0 +1,27 @@
+import type { Theme } from "./types";
+
+export const OCEAN_THEME = {
+  name: "海洋蓝",
+  slug: "ocean",
+  description: "深海蓝调，沉稳专业的配色方案",
+  darkBackground: "#0a1628",
+  darkForeground: "#e8f4f8",
+  darkAccent: "#4fc3f7",
+  darkAccent2: "#26c6da",
+  darkPanel: "#1a2332",
+  darkPanelStrong: "#243447",
+  darkCardBg: "#121e2e",
+  darkFieldBg: "#0d1621",
+  lightBackground: "#f0f4f8",
+  lightForeground: "#1a2332",
+  lightAccent: "#0277bd",
+  lightAccent2: "#0097a7",
+  lightPanel: "#e3eaf0",
+  lightPanelStrong: "#d8dfe6",
+  lightCardBg: "#eef2f6",
+  lightFieldBg: "#f5f7fa",
+  useBackdropBlur: false,
+  useGradientGlow: true,
+  isActive: true,
+  sortOrder: 10,
+} satisfies Omit<Theme, "id" | "createdAt" | "updatedAt">;
