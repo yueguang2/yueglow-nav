@@ -11,8 +11,8 @@ const modes: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
   { value: "dark", label: "深色", icon: Moon },
 ];
 
-const reactActiveClassName = "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[0_8px_24px_color-mix(in_srgb,var(--accent)_22%,transparent)]";
-const nativeActiveClassName = "data-[active=true]:bg-[var(--accent)] data-[active=true]:text-[var(--accent-foreground)] data-[active=true]:shadow-[0_8px_24px_color-mix(in_srgb,var(--accent)_22%,transparent)]";
+const reactActiveClassName = "bg-[var(--accent)] text-[var(--accent-foreground)]";
+const nativeActiveClassName = "data-[active=true]:bg-[var(--accent)] data-[active=true]:text-[var(--accent-foreground)]";
 const inactiveClassName = "text-[var(--muted)] hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]";
 
 const THEME_STORAGE_KEY = "nav-theme";
@@ -113,7 +113,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
       role="radiogroup"
       data-theme-switcher
       data-theme-switcher-version="native-fallback-v1"
-      className={clsx("inline-flex rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] p-1", compact && "w-full")}
+      className={clsx("inline-flex rounded-xl border border-[var(--line)] bg-[var(--control-bg)] p-0.5", compact && "w-full")}
       suppressHydrationWarning
     >
       {modes.map((mode) => {
@@ -128,7 +128,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
             data-active={theme === null ? undefined : active ? "true" : "false"}
             onClick={() => updateTheme(mode.value)}
             className={clsx(
-              "inline-flex cursor-pointer touch-manipulation select-none items-center justify-center rounded-xl px-4 py-2.5 text-xs font-semibold transition-all",
+              "inline-flex min-h-10 cursor-pointer touch-manipulation select-none items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors",
               compact && "flex-1",
               nativeActiveClassName,
               active && reactActiveClassName,

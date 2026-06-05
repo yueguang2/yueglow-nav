@@ -8,8 +8,8 @@ import { ConfirmSubmitForm } from "@/components/confirm-submit-form";
 import { Badge, Checkbox, Field, InitialMark, LinkButton, TextInput, Textarea } from "@/components/ui";
 import { deleteCategoryAction, saveCategoryAction, toggleCategoryPinAction } from "@/lib/actions";
 import { normalizePageParam, pageHref, parsePage } from "@/lib/admin-routing";
-import { countSitesByCategory, getCategoryById, listCategoriesPage } from "@/lib/db";
-import type { Category } from "@/lib/types";
+import { countSitesByCategory, getActiveUiStyle, getCategoryById, listCategoriesPage } from "@/lib/db";
+import type { Category, UiStyle } from "@/lib/types";
 
 const CATEGORY_PAGE_SIZE = 12;
 
@@ -48,6 +48,8 @@ async function CategoriesContent({
 
   const categories = paginatedCategories.items;
   const currentHref = pageHref("/admin/categories", paginatedCategories.page);
+  const uiStyle = getActiveUiStyle();
+  const isClassic = uiStyle === "classic";
   const editId = Number(params.edit);
   const isEditing = editId > 0;
   const isCreating = !isEditing && params.new === "1";
@@ -58,15 +60,16 @@ async function CategoriesContent({
   }
 
   return (
-    <div className="grid gap-5">
-      <header className="glass rounded-[2rem] p-6">
-        <Badge>分类</Badge>
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+    <div className={isClassic ? "grid gap-5" : "grid gap-4"}>
+      <header className={isClassic ? "glass rounded-[2rem] p-6" : "rounded-xl border border-[var(--line)] bg-[var(--card-bg)] p-4 sm:p-5"}>
+        {isClassic ? <Badge>分类</Badge> : null}
+        <div className={isClassic ? "mt-5 flex flex-wrap items-end justify-between gap-4" : "flex flex-wrap items-center justify-between gap-3"}>
           <div>
-            <h1 tabIndex={-1} data-admin-page-title className="text-4xl font-black tracking-[-0.06em] outline-none">
+            {!isClassic ? <Badge>分类</Badge> : null}
+            <h1 tabIndex={-1} data-admin-page-title className={isClassic ? "text-4xl font-black tracking-tight outline-none" : "mt-3 text-2xl font-semibold tracking-tight outline-none"}>
               分类管理
             </h1>
-            <p className="mt-2 text-sm leading-6 text-tertiary">控制前台大版块、排序和显示状态。删除分类前需要先处理分类下的站点。</p>
+            {isClassic ? <p className="mt-2 text-sm leading-6 text-tertiary">控制前台大版块、排序和显示状态。删除分类前需要先处理分类下的站点。</p> : null}
           </div>
           <LinkButton href={pageHref("/admin/categories", paginatedCategories.page, { new: 1 })} data-admin-new-category>
             <Plus className="mr-2 size-4" />
@@ -76,17 +79,17 @@ async function CategoriesContent({
         <AdminNotice code={params.message} />
       </header>
 
-      <section className="glass rounded-[2rem] p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-black tracking-tight">分类列表</h2>
+      <section className={isClassic ? "glass rounded-[2rem] p-5" : "rounded-xl border border-[var(--line)] bg-[var(--card-bg)]"}>
+        <div className={isClassic ? "flex items-center justify-between gap-3" : "flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3"}>
+          <h2 className={isClassic ? "text-xl font-black tracking-tight" : "text-base font-semibold tracking-tight"}>分类列表</h2>
           <span className="text-sm text-faint">{paginatedCategories.total} 个分类</span>
         </div>
 
         {paginatedCategories.total === 0 ? (
-          <EmptyState currentPage={paginatedCategories.page} />
+          <EmptyState currentPage={paginatedCategories.page} uiStyle={uiStyle} />
         ) : (
           <>
-            <div className="mt-5 grid gap-3">
+            <div className={isClassic ? "mt-5 grid gap-3" : "grid divide-y divide-[var(--line)]"}>
               {categories.map((category) => (
                 <CategoryListItem
                   key={category.id}
@@ -94,10 +97,11 @@ async function CategoriesContent({
                   siteCount={countSitesByCategory(category.id)}
                   currentHref={currentHref}
                   currentPage={paginatedCategories.page}
+                  uiStyle={uiStyle}
                 />
               ))}
             </div>
-            <Pagination basePath="/admin/categories" pagination={paginatedCategories} />
+            <Pagination basePath="/admin/categories" pagination={paginatedCategories} uiStyle={uiStyle} />
           </>
         )}
       </section>
@@ -110,6 +114,7 @@ async function CategoriesContent({
           closeHref={currentHref}
           returnFocusSelector={editingCategory ? `[data-edit-category="${editingCategory.id}"]` : "[data-admin-new-category]"}
           size="sm"
+          uiStyle={uiStyle}
         >
           <CategoryForm category={editingCategory} returnTo={currentHref} />
         </AdminModal>
@@ -154,25 +159,29 @@ function CategoryListItem({
   siteCount,
   currentHref,
   currentPage,
+  uiStyle,
 }: {
   category: Category;
   siteCount: number;
   currentHref: string;
   currentPage: number;
+  uiStyle: UiStyle;
 }) {
+  const isClassic = uiStyle === "classic";
+
   return (
-    <div className="panel-soft rounded-3xl p-4">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className={isClassic ? "panel-soft rounded-3xl p-4" : "px-4 py-3"}>
+      <div className={isClassic ? "flex flex-col gap-4 md:flex-row md:items-center md:justify-between" : "flex flex-col gap-3 md:flex-row md:items-center md:justify-between"}>
         <div className="flex min-w-0 items-start gap-3">
-          <InitialMark label={category.icon || category.name} />
+          <InitialMark label={category.icon || category.name} className={isClassic ? undefined : "size-10 text-xs"} />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-black tracking-tight">{category.name}</h3>
-              {category.isPinned ? <span className="chip-warning rounded-full px-2 py-1 text-xs">置顶</span> : null}
-              <span className={category.isVisible ? "chip-success rounded-full px-2 py-1 text-xs" : "chip-danger rounded-full px-2 py-1 text-xs"}>
+              <h3 className={isClassic ? "font-black tracking-tight" : "font-semibold tracking-tight"}>{category.name}</h3>
+              {category.isPinned ? <span className={isClassic ? "chip-warning rounded-full px-2 py-1 text-xs" : "chip-warning px-2 py-1 text-xs"}>置顶</span> : null}
+              <span className={category.isVisible ? (isClassic ? "chip-success rounded-full px-2 py-1 text-xs" : "chip-success px-2 py-1 text-xs") : (isClassic ? "chip-danger rounded-full px-2 py-1 text-xs" : "chip-danger px-2 py-1 text-xs")}>
                 {category.isVisible ? "显示" : "隐藏"}
               </span>
-              <span className="chip rounded-full px-2 py-1 text-xs">{siteCount} 个站点</span>
+              <span className={isClassic ? "chip rounded-full px-2 py-1 text-xs" : "chip px-2 py-1 text-xs"}>{siteCount} 个站点</span>
             </div>
             <p className="mt-1 line-clamp-2 text-sm leading-6 text-tertiary">{category.description || "无描述"}</p>
           </div>
@@ -183,7 +192,7 @@ function CategoryListItem({
             <input type="hidden" name="returnTo" value={currentHref} />
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
+              className={isClassic ? "inline-flex items-center gap-1.5 rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]" : "focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"}
             >
               {category.isPinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
               {category.isPinned ? "取消置顶" : "置顶"}
@@ -192,7 +201,7 @@ function CategoryListItem({
           <a
             href={pageHref("/admin/categories", currentPage, { edit: category.id })}
             data-edit-category={category.id}
-            className="rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
+            className={isClassic ? "rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]" : "focus-ring inline-flex min-h-11 items-center rounded-xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"}
           >
             编辑
           </a>
@@ -206,12 +215,14 @@ function CategoryListItem({
   );
 }
 
-function EmptyState({ currentPage }: { currentPage: number }) {
+function EmptyState({ currentPage, uiStyle }: { currentPage: number; uiStyle: UiStyle }) {
+  const isClassic = uiStyle === "classic";
+
   return (
-    <div className="panel-soft mt-5 grid place-items-center rounded-3xl px-5 py-12 text-center">
+    <div className={isClassic ? "panel-soft mt-5 grid place-items-center rounded-3xl px-5 py-12 text-center" : "grid place-items-center px-5 py-12 text-center"}>
       <InitialMark label="+" className="size-12" />
-      <h3 className="mt-4 text-xl font-black tracking-tight">还没有分类</h3>
-      <p className="mt-2 max-w-md text-sm leading-6 text-tertiary">先创建一个分类，再把站点放进去。后台会更清楚，前台也会更有秩序。</p>
+      <h3 className={isClassic ? "mt-4 text-xl font-black tracking-tight" : "mt-4 text-lg font-semibold tracking-tight"}>还没有分类</h3>
+      <p className="mt-2 max-w-md text-sm leading-6 text-tertiary">先创建一个分类，再把站点放进去。</p>
       <LinkButton href={pageHref("/admin/categories", currentPage, { new: 1 })} className="mt-5">
         新增分类
       </LinkButton>
@@ -222,15 +233,17 @@ function EmptyState({ currentPage }: { currentPage: number }) {
 function Pagination({
   basePath,
   pagination,
+  uiStyle,
 }: {
   basePath: "/admin/categories";
   pagination: ReturnType<typeof listCategoriesPage>;
+  uiStyle: UiStyle;
 }) {
   const start = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
   const end = Math.min(pagination.page * pagination.pageSize, pagination.total);
 
   return (
-    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
+    <div className={uiStyle === "classic" ? "mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4" : "flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] px-4 py-3"}>
       <p className="text-sm text-faint">
         第 {start}-{end} 条，共 {pagination.total} 条
       </p>
@@ -242,7 +255,7 @@ function Pagination({
         >
           上一页
         </LinkButton>
-        <span className="chip rounded-full px-3 py-2 text-sm">
+        <span className={uiStyle === "classic" ? "chip rounded-full px-3 py-2 text-sm" : "chip px-3 py-2 text-sm"}>
           {pagination.page} / {pagination.totalPages}
         </span>
         <LinkButton

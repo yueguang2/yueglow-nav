@@ -1,8 +1,8 @@
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
-import { OCEAN_THEME } from "./default-theme";
-import type { AdminUser, Category, PaginatedResult, Session, Site, SiteInput, SiteLink, Theme } from "./types";
+import { BUILT_IN_THEMES, WECHAT_THEME, isBuiltInThemeName, isBuiltInThemeSlug, type BuiltInTheme } from "./default-theme";
+import type { AdminUser, Category, PaginatedResult, Session, Site, SiteInput, SiteLink, Theme, UiStyle } from "./types";
 
 const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(process.cwd(), "data");
 const dbPath = path.join(dataDir, "nav-site.db");
@@ -24,15 +24,19 @@ function normalizePagination(page: number, pageSize: number, total: number) {
   return { page: safePage, pageSize: safePageSize, totalPages, offset };
 }
 
-function hasColumn(database: Database.Database, tableName: "categories" | "sites", columnName: string) {
+function hasColumn(database: Database.Database, tableName: "categories" | "sites" | "themes", columnName: string) {
   const rows = database.prepare(`PRAGMA table_info(${tableName})`).all() as { name: string }[];
   return rows.some((row) => row.name === columnName);
 }
 
-function ensureColumn(database: Database.Database, tableName: "categories" | "sites", columnName: string, definition: string) {
+function ensureColumn(database: Database.Database, tableName: "categories" | "sites" | "themes", columnName: string, definition: string) {
   if (!hasColumn(database, tableName, columnName)) {
     database.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
   }
+}
+
+function normalizeUiStyle(value: unknown): UiStyle {
+  return value === "classic" ? "classic" : "wechat";
 }
 
 function mapCategory(row: Record<string, unknown>): Category {
@@ -93,6 +97,7 @@ function mapTheme(row: Record<string, unknown>): Theme {
     name: String(row.name),
     slug: String(row.slug),
     description: String(row.description ?? ""),
+    uiStyle: normalizeUiStyle(row.ui_style),
     darkBackground: String(row.dark_background),
     darkForeground: String(row.dark_foreground),
     darkAccent: String(row.dark_accent),
@@ -118,19 +123,28 @@ function mapTheme(row: Record<string, unknown>): Theme {
   };
 }
 
-function insertOceanTheme(database: Database.Database, isActive: boolean) {
+function themeDbInput(theme: BuiltInTheme, isActive = false) {
+  return {
+    ...theme,
+    useBackdropBlur: theme.useBackdropBlur ? 1 : 0,
+    useGradientGlow: theme.useGradientGlow ? 1 : 0,
+    isActive: isActive ? 1 : 0,
+  };
+}
+
+function insertBuiltInTheme(database: Database.Database, theme: BuiltInTheme, isActive: boolean) {
   return database
     .prepare(
       `
       INSERT INTO themes (
-        name, slug, description,
+        name, slug, description, ui_style,
         dark_background, dark_foreground, dark_accent, dark_accent_2,
         dark_panel, dark_panel_strong, dark_card_bg, dark_field_bg,
         light_background, light_foreground, light_accent, light_accent_2,
         light_panel, light_panel_strong, light_card_bg, light_field_bg,
         use_backdrop_blur, use_gradient_glow, is_active, sort_order
       ) VALUES (
-        @name, @slug, @description,
+        @name, @slug, @description, @uiStyle,
         @darkBackground, @darkForeground, @darkAccent, @darkAccent2,
         @darkPanel, @darkPanelStrong, @darkCardBg, @darkFieldBg,
         @lightBackground, @lightForeground, @lightAccent, @lightAccent2,
@@ -139,35 +153,215 @@ function insertOceanTheme(database: Database.Database, isActive: boolean) {
       )
     `,
     )
+    .run(themeDbInput(theme, isActive));
+}
+
+function updateBuiltInTheme(database: Database.Database, id: number, theme: BuiltInTheme) {
+  return database
+    .prepare(
+      `
+      UPDATE themes
+      SET name = @name,
+          slug = @slug,
+          description = @description,
+          ui_style = @uiStyle,
+          dark_background = @darkBackground,
+          dark_foreground = @darkForeground,
+          dark_accent = @darkAccent,
+          dark_accent_2 = @darkAccent2,
+          dark_panel = @darkPanel,
+          dark_panel_strong = @darkPanelStrong,
+          dark_card_bg = @darkCardBg,
+          dark_field_bg = @darkFieldBg,
+          light_background = @lightBackground,
+          light_foreground = @lightForeground,
+          light_accent = @lightAccent,
+          light_accent_2 = @lightAccent2,
+          light_panel = @lightPanel,
+          light_panel_strong = @lightPanelStrong,
+          light_card_bg = @lightCardBg,
+          light_field_bg = @lightFieldBg,
+          use_backdrop_blur = @useBackdropBlur,
+          use_gradient_glow = @useGradientGlow,
+          sort_order = @sortOrder,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = @id
+    `,
+    )
     .run({
-      ...OCEAN_THEME,
-      useBackdropBlur: OCEAN_THEME.useBackdropBlur ? 1 : 0,
-      useGradientGlow: OCEAN_THEME.useGradientGlow ? 1 : 0,
-      isActive: isActive ? 1 : 0,
+      id,
+      ...themeDbInput(theme),
     });
 }
 
-function ensureOceanTheme(database: Database.Database) {
+function isThemePalette(row: Record<string, unknown>, theme: BuiltInTheme) {
+  const checks: [keyof BuiltInTheme, string | boolean][] = [
+    ["description", String(row.description ?? "")],
+    ["darkBackground", String(row.dark_background)],
+    ["darkForeground", String(row.dark_foreground)],
+    ["darkAccent", String(row.dark_accent)],
+    ["darkAccent2", String(row.dark_accent_2)],
+    ["darkPanel", String(row.dark_panel)],
+    ["darkPanelStrong", String(row.dark_panel_strong)],
+    ["darkCardBg", String(row.dark_card_bg)],
+    ["darkFieldBg", String(row.dark_field_bg)],
+    ["lightBackground", String(row.light_background)],
+    ["lightForeground", String(row.light_foreground)],
+    ["lightAccent", String(row.light_accent)],
+    ["lightAccent2", String(row.light_accent_2)],
+    ["lightPanel", String(row.light_panel)],
+    ["lightPanelStrong", String(row.light_panel_strong)],
+    ["lightCardBg", String(row.light_card_bg)],
+    ["lightFieldBg", String(row.light_field_bg)],
+    ["useBackdropBlur", bool(Number(row.use_backdrop_blur))],
+    ["useGradientGlow", bool(Number(row.use_gradient_glow))],
+  ];
+
+  return checks.every(([key, value]) => theme[key] === value);
+}
+
+function isThemePresetRow(row: Record<string, unknown>, theme: BuiltInTheme) {
+  return isThemePalette(row, theme);
+}
+
+function customThemeSlug(slug: string, id: number) {
+  const safeSlug = slug
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || "theme";
+  const suffix = `-${id}`;
+  return `custom-${safeSlug}`.slice(0, Math.max(1, 40 - suffix.length)) + suffix;
+}
+
+function renameConflictingTheme(database: Database.Database, row: Record<string, unknown>) {
+  const id = Number(row.id);
+  const currentSlug = String(row.slug || "theme");
+  const currentName = String(row.name || "主题");
+
+  database
+    .prepare(
+      `
+      UPDATE themes
+      SET slug = @slug,
+          name = @name,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = @id
+    `,
+    )
+    .run({
+      id,
+      slug: customThemeSlug(currentSlug, id),
+      name: `${currentName}（自定义 ${id}）`,
+    });
+}
+
+function renameReservedNameConflicts(database: Database.Database, theme: BuiltInTheme, protectedId: number) {
+  const rows = database
+    .prepare("SELECT * FROM themes WHERE name = ? AND id <> ?")
+    .all(theme.name, protectedId) as Record<string, unknown>[];
+
+  for (const row of rows) {
+    renameConflictingTheme(database, row);
+  }
+}
+
+function prepareWechatTransition(database: Database.Database) {
+  const oceanRow = database.prepare("SELECT * FROM themes WHERE slug = 'ocean'").get() as Record<string, unknown> | undefined;
+
+  if (!oceanRow || !isThemePalette(oceanRow, WECHAT_THEME)) {
+    return;
+  }
+
+  const oceanId = Number(oceanRow.id);
+  const existingWechat = database.prepare("SELECT * FROM themes WHERE slug = 'wechat' AND id <> ?").get(oceanId) as
+    | Record<string, unknown>
+    | undefined;
+
+  if (existingWechat) {
+    renameConflictingTheme(database, existingWechat);
+  }
+
+  renameReservedNameConflicts(database, WECHAT_THEME, oceanId);
+  updateBuiltInTheme(database, oceanId, WECHAT_THEME);
+}
+
+function ensureBuiltInTheme(database: Database.Database, theme: BuiltInTheme) {
+  const existing = database.prepare("SELECT * FROM themes WHERE slug = ?").get(theme.slug) as Record<string, unknown> | undefined;
+
+  if (existing) {
+    if (isThemePresetRow(existing, theme)) {
+      const id = Number(existing.id);
+      renameReservedNameConflicts(database, theme, id);
+      updateBuiltInTheme(database, id, theme);
+      return;
+    }
+
+    renameConflictingTheme(database, existing);
+  }
+
+  const nameConflict = database.prepare("SELECT * FROM themes WHERE name = ?").get(theme.name) as Record<string, unknown> | undefined;
+
+  if (nameConflict) {
+    renameConflictingTheme(database, nameConflict);
+  }
+
+  insertBuiltInTheme(database, theme, false);
+}
+
+function normalizeActiveTheme(database: Database.Database, preferredActiveId?: number) {
+  const activeRows = database
+    .prepare("SELECT id, slug FROM themes WHERE is_active = 1 ORDER BY id ASC")
+    .all() as { id: number; slug: string }[];
+
+  if (activeRows.length === 1) {
+    return;
+  }
+
+  const preferredExists =
+    preferredActiveId && database.prepare("SELECT id FROM themes WHERE id = ?").get(preferredActiveId);
+  const fallbackRow =
+    (preferredExists ? ({ id: preferredActiveId } as { id: number }) : undefined) ??
+    (database.prepare("SELECT id FROM themes WHERE slug = 'wechat'").get() as { id: number } | undefined) ??
+    (database.prepare("SELECT id FROM themes ORDER BY sort_order ASC, id ASC LIMIT 1").get() as { id: number } | undefined);
+
+  if (!fallbackRow) {
+    return;
+  }
+
+  database.prepare("UPDATE themes SET is_active = CASE WHEN id = ? THEN 1 ELSE 0 END").run(fallbackRow.id);
+}
+
+function ensureBuiltInThemes(database: Database.Database) {
   const transaction = database.transaction(() => {
-    const activeBeforeCleanup = database.prepare("SELECT slug FROM themes WHERE is_active = 1").get() as { slug: string } | undefined;
+    const activeBeforeCleanup = database
+      .prepare("SELECT id, slug FROM themes WHERE is_active = 1 ORDER BY id ASC")
+      .all() as { id: number; slug: string }[];
+    const preferredActiveId = activeBeforeCleanup.length === 1 ? activeBeforeCleanup[0].id : undefined;
 
     for (const slug of removedPresetThemeSlugs) {
       database.prepare("DELETE FROM themes WHERE slug = ?").run(slug);
     }
 
-    const activeWasRemoved = activeBeforeCleanup ? removedPresetThemeSlugs.includes(activeBeforeCleanup.slug as (typeof removedPresetThemeSlugs)[number]) : false;
-    const existingOcean = database.prepare("SELECT id FROM themes WHERE slug = 'ocean'").get() as { id: number } | undefined;
+    prepareWechatTransition(database);
 
-    if (!existingOcean) {
-      insertOceanTheme(database, false);
+    const reservedNameRows = database
+      .prepare(`SELECT * FROM themes WHERE name IN (${BUILT_IN_THEMES.map(() => "?").join(",")})`)
+      .all(...BUILT_IN_THEMES.map((theme) => theme.name)) as Record<string, unknown>[];
+
+    for (const row of reservedNameRows) {
+      const matchingTheme = BUILT_IN_THEMES.find((theme) => theme.slug === row.slug);
+
+      if (!matchingTheme || !isThemePresetRow(row, matchingTheme)) {
+        renameConflictingTheme(database, row);
+      }
     }
 
-    const activeCount = database.prepare("SELECT COUNT(*) AS count FROM themes WHERE is_active = 1").get() as { count: number };
-
-    if (activeWasRemoved || activeCount.count === 0) {
-      database.prepare("UPDATE themes SET is_active = 0").run();
-      database.prepare("UPDATE themes SET is_active = 1 WHERE slug = 'ocean'").run();
+    for (const theme of BUILT_IN_THEMES) {
+      ensureBuiltInTheme(database, theme);
     }
+
+    normalizeActiveTheme(database, preferredActiveId);
   });
 
   transaction();
@@ -238,6 +432,7 @@ function migrate(database: Database.Database) {
       name TEXT NOT NULL UNIQUE,
       slug TEXT NOT NULL UNIQUE,
       description TEXT NOT NULL DEFAULT '',
+      ui_style TEXT NOT NULL DEFAULT 'wechat',
       dark_background TEXT NOT NULL,
       dark_foreground TEXT NOT NULL,
       dark_accent TEXT NOT NULL,
@@ -255,7 +450,7 @@ function migrate(database: Database.Database) {
       light_card_bg TEXT NOT NULL,
       light_field_bg TEXT NOT NULL,
       use_backdrop_blur INTEGER NOT NULL DEFAULT 0,
-      use_gradient_glow INTEGER NOT NULL DEFAULT 1,
+      use_gradient_glow INTEGER NOT NULL DEFAULT 0,
       is_active INTEGER NOT NULL DEFAULT 0,
       sort_order INTEGER NOT NULL DEFAULT 100,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -265,6 +460,7 @@ function migrate(database: Database.Database) {
 
   ensureColumn(database, "categories", "is_pinned", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(database, "sites", "is_pinned", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(database, "themes", "ui_style", "TEXT NOT NULL DEFAULT 'wechat'");
 
   const sitesWithoutLinks = database
     .prepare(
@@ -292,7 +488,7 @@ function migrate(database: Database.Database) {
     transaction();
   }
 
-  ensureOceanTheme(database);
+  ensureBuiltInThemes(database);
 }
 
 function seed(database: Database.Database) {
@@ -820,13 +1016,25 @@ export function getThemeBySlug(slug: string) {
   return row ? mapTheme(row) : undefined;
 }
 
+export function isBuiltInTheme(theme: Pick<Theme, "slug" | "name">) {
+  return isBuiltInThemeSlug(theme.slug) || isBuiltInThemeName(theme.name);
+}
+
+export function isReservedThemeIdentity(input: Pick<Theme, "slug" | "name">) {
+  return isBuiltInThemeSlug(input.slug) || isBuiltInThemeName(input.name);
+}
+
 export function getActiveTheme() {
   const row = getDb().prepare("SELECT * FROM themes WHERE is_active = 1").get() as Record<string, unknown> | undefined;
   return row ? mapTheme(row) : undefined;
 }
 
+export function getActiveUiStyle(): UiStyle {
+  return getActiveTheme()?.uiStyle ?? "wechat";
+}
+
 export function ensureDefaultTheme() {
-  ensureOceanTheme(getDb());
+  ensureBuiltInThemes(getDb());
 }
 
 export function createTheme(input: Omit<Theme, "id" | "createdAt" | "updatedAt">) {
@@ -834,14 +1042,14 @@ export function createTheme(input: Omit<Theme, "id" | "createdAt" | "updatedAt">
     .prepare(
       `
       INSERT INTO themes (
-        name, slug, description,
+        name, slug, description, ui_style,
         dark_background, dark_foreground, dark_accent, dark_accent_2,
         dark_panel, dark_panel_strong, dark_card_bg, dark_field_bg,
         light_background, light_foreground, light_accent, light_accent_2,
         light_panel, light_panel_strong, light_card_bg, light_field_bg,
         use_backdrop_blur, use_gradient_glow, is_active, sort_order
       ) VALUES (
-        @name, @slug, @description,
+        @name, @slug, @description, @uiStyle,
         @darkBackground, @darkForeground, @darkAccent, @darkAccent2,
         @darkPanel, @darkPanelStrong, @darkCardBg, @darkFieldBg,
         @lightBackground, @lightForeground, @lightAccent, @lightAccent2,
@@ -866,6 +1074,7 @@ export function updateTheme(id: number, input: Omit<Theme, "id" | "createdAt" | 
       SET name = @name,
           slug = @slug,
           description = @description,
+          ui_style = @uiStyle,
           dark_background = @darkBackground,
           dark_foreground = @darkForeground,
           dark_accent = @darkAccent,

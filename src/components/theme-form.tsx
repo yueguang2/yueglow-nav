@@ -4,11 +4,11 @@ import { Moon, Sun } from "lucide-react";
 import { useState } from "react";
 import { ActionForm } from "@/components/action-form";
 import { SubmitButton } from "@/components/action-button";
-import { Checkbox, Field, TextInput, Textarea } from "@/components/ui";
+import { Checkbox, Field, Select, TextInput, Textarea } from "@/components/ui";
 import { AdminModalCloseButton } from "@/components/admin-drawer";
 import { saveThemeAction } from "@/lib/actions";
 import type { AdminRoute } from "@/lib/admin-routing";
-import { OCEAN_THEME } from "@/lib/default-theme";
+import { WECHAT_THEME } from "@/lib/default-theme";
 import type { Theme } from "@/lib/types";
 import { ThemePreview } from "./theme-preview";
 
@@ -24,24 +24,25 @@ export function ThemeForm({ theme, returnTo, defaultSlug = "custom-theme" }: The
     name: theme?.name || "",
     slug: theme?.slug || defaultSlug,
     description: theme?.description || "",
-    darkBackground: theme?.darkBackground || OCEAN_THEME.darkBackground,
-    darkForeground: theme?.darkForeground || OCEAN_THEME.darkForeground,
-    darkAccent: theme?.darkAccent || OCEAN_THEME.darkAccent,
-    darkAccent2: theme?.darkAccent2 || OCEAN_THEME.darkAccent2,
-    darkPanel: theme?.darkPanel || OCEAN_THEME.darkPanel,
-    darkPanelStrong: theme?.darkPanelStrong || OCEAN_THEME.darkPanelStrong,
-    darkCardBg: theme?.darkCardBg || OCEAN_THEME.darkCardBg,
-    darkFieldBg: theme?.darkFieldBg || OCEAN_THEME.darkFieldBg,
-    lightBackground: theme?.lightBackground || OCEAN_THEME.lightBackground,
-    lightForeground: theme?.lightForeground || OCEAN_THEME.lightForeground,
-    lightAccent: theme?.lightAccent || OCEAN_THEME.lightAccent,
-    lightAccent2: theme?.lightAccent2 || OCEAN_THEME.lightAccent2,
-    lightPanel: theme?.lightPanel || OCEAN_THEME.lightPanel,
-    lightPanelStrong: theme?.lightPanelStrong || OCEAN_THEME.lightPanelStrong,
-    lightCardBg: theme?.lightCardBg || OCEAN_THEME.lightCardBg,
-    lightFieldBg: theme?.lightFieldBg || OCEAN_THEME.lightFieldBg,
-    useBackdropBlur: theme?.useBackdropBlur ?? OCEAN_THEME.useBackdropBlur,
-    useGradientGlow: theme?.useGradientGlow ?? OCEAN_THEME.useGradientGlow,
+    uiStyle: theme?.uiStyle || WECHAT_THEME.uiStyle,
+    darkBackground: theme?.darkBackground || WECHAT_THEME.darkBackground,
+    darkForeground: theme?.darkForeground || WECHAT_THEME.darkForeground,
+    darkAccent: theme?.darkAccent || WECHAT_THEME.darkAccent,
+    darkAccent2: theme?.darkAccent2 || WECHAT_THEME.darkAccent2,
+    darkPanel: theme?.darkPanel || WECHAT_THEME.darkPanel,
+    darkPanelStrong: theme?.darkPanelStrong || WECHAT_THEME.darkPanelStrong,
+    darkCardBg: theme?.darkCardBg || WECHAT_THEME.darkCardBg,
+    darkFieldBg: theme?.darkFieldBg || WECHAT_THEME.darkFieldBg,
+    lightBackground: theme?.lightBackground || WECHAT_THEME.lightBackground,
+    lightForeground: theme?.lightForeground || WECHAT_THEME.lightForeground,
+    lightAccent: theme?.lightAccent || WECHAT_THEME.lightAccent,
+    lightAccent2: theme?.lightAccent2 || WECHAT_THEME.lightAccent2,
+    lightPanel: theme?.lightPanel || WECHAT_THEME.lightPanel,
+    lightPanelStrong: theme?.lightPanelStrong || WECHAT_THEME.lightPanelStrong,
+    lightCardBg: theme?.lightCardBg || WECHAT_THEME.lightCardBg,
+    lightFieldBg: theme?.lightFieldBg || WECHAT_THEME.lightFieldBg,
+    useBackdropBlur: theme?.useBackdropBlur ?? WECHAT_THEME.useBackdropBlur,
+    useGradientGlow: theme?.useGradientGlow ?? WECHAT_THEME.useGradientGlow,
     sortOrder: theme?.sortOrder || 100,
   });
 
@@ -96,6 +97,17 @@ export function ThemeForm({ theme, returnTo, defaultSlug = "custom-theme" }: The
           placeholder="简要描述这个主题的特点"
           rows={2}
         />
+      </Field>
+
+      <Field label="界面风格">
+        <Select
+          name="uiStyle"
+          value={formData.uiStyle}
+          onChange={(e) => handleChange("uiStyle", e.target.value)}
+        >
+          <option value="wechat">微信简洁</option>
+          <option value="classic">海洋经典</option>
+        </Select>
       </Field>
 
       {/* 预览 */}
@@ -240,23 +252,21 @@ export function ThemeForm({ theme, returnTo, defaultSlug = "custom-theme" }: The
         </div>
       </div>
 
-      {/* 主题特性 */}
       <div className="grid gap-2">
         <Checkbox
           name="useBackdropBlur"
-          label="使用背景模糊效果（玻璃拟态风格）"
+          label="启用背景模糊"
           checked={formData.useBackdropBlur}
           onChange={(e) => handleChange("useBackdropBlur", e.target.checked)}
         />
         <Checkbox
           name="useGradientGlow"
-          label="使用渐变发光背景"
+          label="启用动态背景"
           checked={formData.useGradientGlow}
           onChange={(e) => handleChange("useGradientGlow", e.target.checked)}
         />
       </div>
 
-      {/* 排序 */}
       <Field label="排序">
         <TextInput
           type="number"
@@ -268,7 +278,6 @@ export function ThemeForm({ theme, returnTo, defaultSlug = "custom-theme" }: The
         />
       </Field>
 
-      {/* 操作 */}
       <div className="flex gap-3">
         <SubmitButton>{theme ? "保存主题" : "创建主题"}</SubmitButton>
         <AdminModalCloseButton />
@@ -296,7 +305,7 @@ function ColorInput({
           type="color"
           value={value.startsWith("#") ? value : "#080b12"}
           onChange={(e) => onChange(e.target.value)}
-          className="size-9 cursor-pointer rounded-lg border border-[var(--line)]"
+          className="size-10 cursor-pointer rounded-lg border border-[var(--line)]"
         />
         <input
           type="text"

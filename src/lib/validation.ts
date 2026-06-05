@@ -84,6 +84,7 @@ export const themeSchema = z.object({
     .max(40, "主题标识符不能超过 40 个字符")
     .regex(/^[a-z0-9-]+$/, "主题标识符只能包含小写字母、数字和连字符"),
   description: z.string().trim().max(200, "描述不能超过 200 个字符").default(""),
+  uiStyle: z.enum(["wechat", "classic"]).default("wechat"),
   darkBackground: hexColorSchema,
   darkForeground: hexColorSchema,
   darkAccent: hexColorSchema,
@@ -101,6 +102,6 @@ export const themeSchema = z.object({
   lightCardBg: hexColorSchema,
   lightFieldBg: hexColorSchema,
   useBackdropBlur: z.coerce.boolean().default(false),
-  useGradientGlow: z.coerce.boolean().default(true),
+  useGradientGlow: z.coerce.boolean().default(false),
   sortOrder: z.coerce.number().int().min(0).max(9999).default(100),
 });

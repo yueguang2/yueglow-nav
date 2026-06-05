@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/action-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Field, TextInput } from "@/components/ui";
 import { getCurrentAdmin } from "@/lib/auth";
-import { getAdminCount } from "@/lib/db";
+import { getActiveUiStyle, getAdminCount } from "@/lib/db";
 import { isLazycatPasswordlessLoginEnabled } from "@/lib/lazycat";
 import { isOidcEnabled } from "@/lib/oidc";
 import { loginAction, setupAdminAction } from "@/lib/actions";
@@ -30,20 +30,26 @@ export default async function LoginPage({
   const formAutoComplete = passwordlessEnabled ? undefined : "off";
   const usernameAutoComplete = passwordlessEnabled ? "username" : "off";
   const passwordAutoComplete = passwordlessEnabled ? (needsSetup ? "new-password" : "current-password") : "off";
+  const uiStyle = getActiveUiStyle();
+  const isClassic = uiStyle === "classic";
 
   return (
     <main className="grid min-h-screen place-items-center px-5 py-10">
-      <div className="glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-6 sm:p-8">
-        <div className="pointer-events-none absolute -right-16 -top-16 size-44 rounded-full bg-cyan-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 left-6 size-44 rounded-full bg-lime-200/12 blur-3xl" />
+      <div className={isClassic ? "glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-6 sm:p-8" : "relative w-full max-w-md overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--card-bg)] p-5 shadow-[var(--shadow-sm)] sm:p-6"}>
+        {isClassic ? (
+          <>
+            <div className="pointer-events-none absolute -right-16 -top-16 size-44 rounded-full bg-cyan-300/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-20 left-6 size-44 rounded-full bg-lime-200/12 blur-3xl" />
+          </>
+        ) : null}
         <div className="relative">
           <div className="flex items-center justify-between gap-3">
-            <Link href="/" className="text-xs font-semibold uppercase tracking-[0.36em] text-faint">
-              Yueglow Nav
+            <Link href="/" className={isClassic ? "text-xs font-semibold uppercase text-faint" : "text-sm font-semibold text-secondary"}>
+              {isClassic ? "Yueglow Nav" : "个人导航"}
             </Link>
             <ThemeSwitcher />
           </div>
-          <h1 className="mt-6 text-4xl font-black tracking-[-0.06em]">{needsSetup && !oidcEnabled ? "初始化后台" : "后台登录"}</h1>
+          <h1 className={isClassic ? "mt-6 text-4xl font-black tracking-tight" : "mt-6 text-2xl font-semibold tracking-tight"}>{needsSetup && !oidcEnabled ? "初始化后台" : "后台登录"}</h1>
           <p className="mt-3 text-sm leading-6 text-tertiary">
             {oidcEnabled
               ? needsSetup
@@ -55,7 +61,7 @@ export default async function LoginPage({
           </p>
 
           {errorMessage ? (
-            <p className="mt-5 rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100">
+            <p className={isClassic ? "mt-5 rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100" : "chip-danger mt-5 rounded-xl px-4 py-3 text-sm font-semibold"}>
               {errorMessage}
             </p>
           ) : null}
@@ -63,7 +69,7 @@ export default async function LoginPage({
           {oidcEnabled ? (
             <a
               href="/auth/oidc/login"
-              className="clay-button focus-ring mt-8 flex w-full items-center justify-center px-5 py-3 text-sm font-black transition-all duration-200 hover:scale-[1.02]"
+              className="clay-button focus-ring mt-8 flex w-full items-center justify-center px-5 py-3 text-sm font-semibold"
             >
               使用懒猫账号登录
             </a>

@@ -9,8 +9,8 @@ import { Badge, Checkbox, Field, InitialMark, LinkButton, Select, TextInput, Tex
 import { SiteLinksEditor } from "@/components/site-links-editor";
 import { deleteSiteAction, saveSiteAction, toggleSitePinAction } from "@/lib/actions";
 import { normalizePageParam, pageHref, parsePage } from "@/lib/admin-routing";
-import { getSiteById, listCategories, listSitesPage } from "@/lib/db";
-import type { Site } from "@/lib/types";
+import { getActiveUiStyle, getSiteById, listCategories, listSitesPage } from "@/lib/db";
+import type { Site, UiStyle } from "@/lib/types";
 
 const SITE_PAGE_SIZE = 10;
 
@@ -50,6 +50,8 @@ async function SitesContent({
 
   const sites = paginatedSites.items;
   const currentHref = pageHref("/admin/sites", paginatedSites.page);
+  const uiStyle = getActiveUiStyle();
+  const isClassic = uiStyle === "classic";
   const editId = Number(params.edit);
   const isEditing = editId > 0;
   const isCreating = !isEditing && params.new === "1";
@@ -60,15 +62,16 @@ async function SitesContent({
   }
 
   return (
-    <div className="grid gap-5">
-      <header className="glass rounded-[2rem] p-6">
-        <Badge>站点</Badge>
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+    <div className={isClassic ? "grid gap-5" : "grid gap-4"}>
+      <header className={isClassic ? "glass rounded-[2rem] p-6" : "rounded-xl border border-[var(--line)] bg-[var(--card-bg)] p-4 sm:p-5"}>
+        {isClassic ? <Badge>站点</Badge> : null}
+        <div className={isClassic ? "mt-5 flex flex-wrap items-end justify-between gap-4" : "flex flex-wrap items-center justify-between gap-3"}>
           <div>
-            <h1 tabIndex={-1} data-admin-page-title className="text-4xl font-black tracking-[-0.06em] outline-none">
+            {!isClassic ? <Badge>站点</Badge> : null}
+            <h1 tabIndex={-1} data-admin-page-title className={isClassic ? "text-4xl font-black tracking-tight outline-none" : "mt-3 text-2xl font-semibold tracking-tight outline-none"}>
               站点管理
             </h1>
-            <p className="mt-2 text-sm leading-6 text-tertiary">维护站点列表、所属分类、常用状态、排序和前台显示状态。</p>
+            {isClassic ? <p className="mt-2 text-sm leading-6 text-tertiary">维护站点列表、所属分类、常用状态、排序和前台显示状态。</p> : null}
           </div>
           {categories.length > 0 ? (
             <LinkButton href={pageHref("/admin/sites", paginatedSites.page, { new: 1 })} data-admin-new-site>
@@ -84,9 +87,9 @@ async function SitesContent({
         <AdminNotice code={params.message} />
       </header>
 
-      <section className="glass rounded-[2rem] p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-black tracking-tight">站点列表</h2>
+      <section className={isClassic ? "glass rounded-[2rem] p-5" : "rounded-xl border border-[var(--line)] bg-[var(--card-bg)]"}>
+        <div className={isClassic ? "flex items-center justify-between gap-3" : "flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3"}>
+          <h2 className={isClassic ? "text-xl font-black tracking-tight" : "text-base font-semibold tracking-tight"}>站点列表</h2>
           <span className="text-sm text-faint">{paginatedSites.total} 个站点</span>
         </div>
 
@@ -96,6 +99,7 @@ async function SitesContent({
             description="站点必须归属于一个分类。先创建分类，再回来添加站点，会更清楚也更不容易放错位置。"
             actionHref="/admin/categories?new=1"
             actionText="创建分类"
+            uiStyle={uiStyle}
           />
         ) : paginatedSites.total === 0 ? (
           <EmptyState
@@ -103,15 +107,16 @@ async function SitesContent({
             description="把你的第一个入口放进来，前台导航就会开始有内容。"
             actionHref={pageHref("/admin/sites", paginatedSites.page, { new: 1 })}
             actionText="新增站点"
+            uiStyle={uiStyle}
           />
         ) : (
           <>
-            <div className="mt-5 grid gap-3">
+            <div className={isClassic ? "mt-5 grid gap-3" : "grid divide-y divide-[var(--line)]"}>
               {sites.map((site) => (
-                <SiteListItem key={site.id} site={site} currentHref={currentHref} currentPage={paginatedSites.page} />
+                <SiteListItem key={site.id} site={site} currentHref={currentHref} currentPage={paginatedSites.page} uiStyle={uiStyle} />
               ))}
             </div>
-            <Pagination basePath="/admin/sites" pagination={paginatedSites} />
+            <Pagination basePath="/admin/sites" pagination={paginatedSites} uiStyle={uiStyle} />
           </>
         )}
       </section>
@@ -124,9 +129,10 @@ async function SitesContent({
           closeHref={currentHref}
           returnFocusSelector={editingSite ? `[data-edit-site="${editingSite.id}"]` : "[data-admin-new-site]"}
           size="md"
+          uiStyle={uiStyle}
         >
           {categories.length === 0 ? (
-            <div className="chip-danger rounded-2xl px-4 py-3 text-sm">
+            <div className="chip-danger rounded-xl px-4 py-3 text-sm">
               请先创建至少一个分类，再添加站点。
             </div>
           ) : (
@@ -202,30 +208,34 @@ function SiteListItem({
   site,
   currentHref,
   currentPage,
+  uiStyle,
 }: {
   site: Site;
   currentHref: string;
   currentPage: number;
+  uiStyle: UiStyle;
 }) {
+  const isClassic = uiStyle === "classic";
+
   return (
-    <div className="panel-soft rounded-3xl p-4">
+    <div className={isClassic ? "panel-soft rounded-3xl p-4" : "px-4 py-3"}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <InitialMark label={site.icon || site.name} />
+          <InitialMark label={site.icon || site.name} className={isClassic ? undefined : "size-10 text-xs"} />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-black tracking-tight">{site.name}</h3>
-              {site.isPinned ? <span className="chip-warning rounded-full px-2 py-1 text-xs">置顶</span> : null}
+              <h3 className={isClassic ? "font-black tracking-tight" : "font-semibold tracking-tight"}>{site.name}</h3>
+              {site.isPinned ? <span className={isClassic ? "chip-warning rounded-full px-2 py-1 text-xs" : "chip-warning px-2 py-1 text-xs"}>置顶</span> : null}
               {site.isFavorite ? (
-                <span className="chip-warning inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs">
+                <span className={isClassic ? "chip-warning inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs" : "chip-warning inline-flex items-center gap-1 px-2 py-1 text-xs"}>
                   <Star className="size-3 fill-current" />
                   常用
                 </span>
               ) : null}
-              <span className={site.isVisible ? "chip-success rounded-full px-2 py-1 text-xs" : "chip-danger rounded-full px-2 py-1 text-xs"}>
+              <span className={site.isVisible ? (isClassic ? "chip-success rounded-full px-2 py-1 text-xs" : "chip-success px-2 py-1 text-xs") : (isClassic ? "chip-danger rounded-full px-2 py-1 text-xs" : "chip-danger px-2 py-1 text-xs")}>
                 {site.isVisible ? "显示" : "隐藏"}
               </span>
-              <span className="chip rounded-full px-2 py-1 text-xs">{site.categoryName}</span>
+              <span className={isClassic ? "chip rounded-full px-2 py-1 text-xs" : "chip px-2 py-1 text-xs"}>{site.categoryName}</span>
             </div>
             <p className="mt-1 line-clamp-2 text-sm leading-6 text-tertiary">{site.description || site.primaryUrl}</p>
             <a href={`/go/${site.id}`} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--accent)] hover:brightness-110">
@@ -240,7 +250,7 @@ function SiteListItem({
             <input type="hidden" name="returnTo" value={currentHref} />
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
+              className={isClassic ? "inline-flex items-center gap-1.5 rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]" : "focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"}
             >
               {site.isPinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
               {site.isPinned ? "取消置顶" : "置顶"}
@@ -249,7 +259,7 @@ function SiteListItem({
           <a
             href={pageHref("/admin/sites", currentPage, { edit: site.id })}
             data-edit-site={site.id}
-            className="rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
+            className={isClassic ? "rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]" : "focus-ring inline-flex min-h-11 items-center rounded-xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"}
           >
             编辑
           </a>
@@ -266,15 +276,17 @@ function SiteListItem({
 function Pagination({
   basePath,
   pagination,
+  uiStyle,
 }: {
   basePath: "/admin/sites";
   pagination: ReturnType<typeof listSitesPage>;
+  uiStyle: UiStyle;
 }) {
   const start = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
   const end = Math.min(pagination.page * pagination.pageSize, pagination.total);
 
   return (
-    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
+    <div className={uiStyle === "classic" ? "mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4" : "flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] px-4 py-3"}>
       <p className="text-sm text-faint">
         第 {start}-{end} 条，共 {pagination.total} 条
       </p>
@@ -286,7 +298,7 @@ function Pagination({
         >
           上一页
         </LinkButton>
-        <span className="chip rounded-full px-3 py-2 text-sm">
+        <span className={uiStyle === "classic" ? "chip rounded-full px-3 py-2 text-sm" : "chip px-3 py-2 text-sm"}>
           {pagination.page} / {pagination.totalPages}
         </span>
         <LinkButton
@@ -306,16 +318,20 @@ function EmptyState({
   description,
   actionHref,
   actionText,
+  uiStyle,
 }: {
   title: string;
   description: string;
   actionHref: string;
   actionText: string;
+  uiStyle: UiStyle;
 }) {
+  const isClassic = uiStyle === "classic";
+
   return (
-    <div className="panel-soft mt-5 grid place-items-center rounded-3xl px-5 py-12 text-center">
+    <div className={isClassic ? "panel-soft mt-5 grid place-items-center rounded-3xl px-5 py-12 text-center" : "grid place-items-center px-5 py-12 text-center"}>
       <InitialMark label="+" className="size-12" />
-      <h3 className="mt-4 text-xl font-black tracking-tight">{title}</h3>
+      <h3 className={isClassic ? "mt-4 text-xl font-black tracking-tight" : "mt-4 text-lg font-semibold tracking-tight"}>{title}</h3>
       <p className="mt-2 max-w-md text-sm leading-6 text-tertiary">{description}</p>
       <LinkButton href={actionHref} className="mt-5">
         {actionText}

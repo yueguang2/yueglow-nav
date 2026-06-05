@@ -3,6 +3,7 @@
 import { CheckCircle2, Loader2, RotateCcw, X, XCircle } from "lucide-react";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
+import type { UiStyle } from "@/lib/types";
 
 type ResolveState = "idle" | "loading" | "success" | "error";
 
@@ -12,7 +13,7 @@ type SmartLinkContextValue = {
 
 const SmartLinkContext = createContext<SmartLinkContextValue | null>(null);
 
-export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
+export function SmartLinkProvider({ children, uiStyle = "wechat" }: { children: React.ReactNode; uiStyle?: UiStyle }) {
   const [state, setState] = useState<ResolveState>("idle");
   const [site, setSite] = useState<{ id: number; name: string; fallbackHref: string; linkCount?: number } | null>(null);
   const [message, setMessage] = useState("");
@@ -81,19 +82,20 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
       setMessage(error instanceof Error ? error.message : "测速失败，请稍后重试");
     }
   }
+  const isClassic = uiStyle === "classic";
 
   return (
     <SmartLinkContext.Provider value={{ open: resolve }}>
       {children}
       {site ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-5 backdrop-blur-md animate-in fade-in duration-200"
+          className={isClassic ? "fixed inset-0 z-50 grid place-items-center bg-black/45 px-4 backdrop-blur-md animate-in fade-in duration-200" : "fixed inset-0 z-50 grid place-items-center bg-black/35 px-4 backdrop-blur-sm animate-in fade-in duration-200"}
           role="dialog"
           aria-modal="true"
           aria-labelledby="dialog-title"
           aria-describedby="dialog-description"
         >
-          <div ref={dialogRef} className="clay-card relative w-full max-w-md overflow-hidden rounded-[2rem] p-6 text-[var(--foreground)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+          <div ref={dialogRef} className={isClassic ? "clay-card relative w-full max-w-md overflow-hidden rounded-[2rem] p-6 text-[var(--foreground)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300" : "relative w-full max-w-md overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--card-bg)] p-5 text-[var(--foreground)] shadow-[var(--shadow-lg)] animate-in fade-in slide-in-from-bottom-2 duration-200"}>
             <button
               ref={closeButtonRef}
               type="button"
@@ -101,36 +103,36 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
                 setSite(null);
                 setState("idle");
               }}
-              className="focus-ring absolute right-4 top-4 z-10 clay-panel grid size-9 place-items-center rounded-full text-[var(--text-secondary)] transition-all duration-300 hover:scale-110 hover:shadow-[var(--shadow-md)] hover:text-[var(--foreground)]"
+              className={isClassic ? "focus-ring clay-panel absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-full text-[var(--text-secondary)] transition-all duration-300 hover:scale-110 hover:shadow-[var(--shadow-md)] hover:text-[var(--foreground)]" : "focus-ring absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-lg text-[var(--text-secondary)] transition-colors duration-200 hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"}
               aria-label="关闭对话框"
             >
               <X className="size-4" />
             </button>
 
             <div className="relative z-10 grid justify-items-center text-center">
-              <div className="relative grid size-24 place-items-center">
+              <div className="relative grid size-16 place-items-center">
                 <div
                   className={clsx(
-                    "absolute inset-0 rounded-full border-2 transition-all duration-300",
+                    "absolute inset-0 rounded-full border transition-all duration-200",
                     state === "loading" && "animate-spin border-[var(--line)] border-t-[var(--accent)]",
-                    state === "success" && "border-[var(--success)] scale-110",
-                    state === "error" && "border-[var(--danger)] scale-110",
+                    state === "success" && "border-[var(--success)]",
+                    state === "error" && "border-[var(--danger)]",
                   )}
                   aria-hidden="true"
                 />
-                {state === "loading" ? <Loader2 className="size-9 animate-spin text-[var(--accent)] transition-all duration-300" aria-label="加载中" /> : null}
-                {state === "success" ? <CheckCircle2 className="size-10 text-[var(--success)] animate-in zoom-in-50 duration-300" aria-label="成功" /> : null}
-                {state === "error" ? <XCircle className="size-10 text-[var(--danger)] animate-in zoom-in-50 duration-300" aria-label="错误" /> : null}
+                {state === "loading" ? <Loader2 className="size-7 animate-spin text-[var(--accent)]" aria-label="加载中" /> : null}
+                {state === "success" ? <CheckCircle2 className="size-8 text-[var(--success)] animate-in zoom-in-50 duration-200" aria-label="成功" /> : null}
+                {state === "error" ? <XCircle className="size-8 text-[var(--danger)] animate-in zoom-in-50 duration-200" aria-label="错误" /> : null}
               </div>
 
-              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.3em] text-faint">智能跳转</p>
-              <h2 id="dialog-title" className="mt-3 text-3xl font-black tracking-[-0.05em]">{site.name}</h2>
+              <p className="mt-4 text-xs font-medium text-faint">智能跳转</p>
+              <h2 id="dialog-title" className="mt-2 text-xl font-semibold tracking-tight">{site.name}</h2>
               <p id="dialog-description" className="mt-3 max-w-sm text-sm leading-6 text-tertiary">{message}</p>
 
-              {targetUrl ? <p className="mt-4 max-w-full truncate rounded-full bg-[var(--panel)] px-3 py-1.5 text-xs text-secondary shadow-[var(--shadow-subtle)]">{targetUrl}</p> : null}
+              {targetUrl ? <p className={isClassic ? "clay-panel mt-4 max-w-full truncate rounded-[1rem] px-3 py-2 text-xs text-secondary" : "mt-4 max-w-full truncate rounded-lg border border-[var(--line)] bg-[var(--field-bg)] px-3 py-2 text-xs text-secondary"}>{targetUrl}</p> : null}
 
               {state === "error" ? (
-                <div className="mt-6 flex gap-3">
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
                   <button
                     type="button"
                     onClick={() => resolve(site)}
@@ -141,7 +143,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
                   </button>
                   <a
                     href={site.fallbackHref}
-                    className="focus-ring clay-panel inline-flex items-center rounded-full px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] transition-all duration-300 hover:shadow-[var(--shadow-md)]"
+                    className="focus-ring inline-flex min-h-11 items-center rounded-xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition-colors hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
                   >
                     使用兜底跳转
                   </a>
@@ -149,7 +151,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
               ) : null}
 
               {state === "success" && openBlocked && targetUrl ? (
-                <div className="mt-6 flex gap-3">
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
                   <a
                     href={targetUrl}
                     target="_blank"
@@ -165,7 +167,7 @@ export function SmartLinkProvider({ children }: { children: React.ReactNode }) {
                       setState("idle");
                       setTargetUrl("");
                     }}
-                    className="focus-ring clay-panel inline-flex items-center rounded-full px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] transition-all duration-300 hover:shadow-[var(--shadow-md)]"
+                    className="focus-ring inline-flex min-h-11 items-center rounded-xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition-colors hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
                   >
                     关闭
                   </button>

@@ -20,6 +20,8 @@ import {
   getCategoryById,
   getSiteById,
   getThemeById,
+  isBuiltInTheme,
+  isReservedThemeIdentity,
   updateCategory,
   updateAdminPassword,
   updateSite,
@@ -65,7 +67,9 @@ function parseLinks(value: FormDataEntryValue | null) {
 
 function revalidateAdminPaths(path: "/admin/categories" | "/admin/sites" | "/admin/themes") {
   revalidatePath("/");
+  revalidatePath("/", "layout");
   revalidatePath("/admin");
+  revalidatePath("/admin/login");
   revalidatePath(path);
 }
 
@@ -274,6 +278,7 @@ export async function saveThemeAction(_state: ActionState, formData: FormData): 
     name: formData.get("name"),
     slug: formData.get("slug"),
     description: formData.get("description"),
+    uiStyle: formData.get("uiStyle"),
     darkBackground: formData.get("darkBackground"),
     darkForeground: formData.get("darkForeground"),
     darkAccent: formData.get("darkAccent"),
@@ -300,10 +305,27 @@ export async function saveThemeAction(_state: ActionState, formData: FormData): 
   }
 
   const id = Number(formData.get("id"));
+
+  if (id > 0) {
+    const existingTheme = getThemeById(id);
+
+    if (!existingTheme) {
+      redirectBack(formData, "/admin/themes", "theme-missing");
+    }
+
+    if (isBuiltInTheme(existingTheme)) {
+      redirectBack(formData, "/admin/themes", "theme-preset-readonly");
+    }
+  }
+
   const themeInput = {
     ...parsed.data,
     slug: id === 0 && parsed.data.slug === "custom-theme" ? `custom-${Date.now().toString(36)}` : parsed.data.slug,
   };
+
+  if (isReservedThemeIdentity(themeInput)) {
+    return error("系统预设主题名称或标识符不可用于自定义主题");
+  }
 
   try {
     if (id > 0) {
@@ -333,6 +355,10 @@ export async function deleteThemeAction(formData: FormData) {
     revalidatePath("/admin");
     revalidatePath("/admin/themes");
     redirectBack(formData, "/admin/themes", "theme-active-delete-blocked");
+  }
+
+  if (isBuiltInTheme(theme)) {
+    redirectBack(formData, "/admin/themes", "theme-preset-readonly");
   }
 
   deleteTheme(id);

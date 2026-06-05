@@ -47,7 +47,7 @@ export function AdminNotice({ code }: { code?: string }) {
   return (
     <div
       className={clsx(
-        "mt-4 flex items-start justify-between gap-3 rounded-2xl px-4 py-3 text-sm",
+        "mt-4 flex items-start justify-between gap-3 rounded-xl px-4 py-3 text-sm",
         notice.tone === "success" ? "chip-success" : "chip-danger",
       )}
       role={notice.tone === "error" ? "alert" : "status"}
@@ -56,7 +56,7 @@ export function AdminNotice({ code }: { code?: string }) {
       <button
         type="button"
         onClick={() => setNotice(null)}
-        className="focus-ring grid size-6 shrink-0 place-items-center rounded-full opacity-70 transition hover:opacity-100"
+        className="focus-ring grid size-7 shrink-0 place-items-center rounded-lg opacity-70 transition hover:bg-black/5 hover:opacity-100"
         aria-label="关闭提示"
       >
         <X className="size-3.5" />

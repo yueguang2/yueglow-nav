@@ -1,5 +1,5 @@
 import { HomePage } from "@/components/home-page";
-import { listCategories, listFavoriteSites, listSites } from "@/lib/db";
+import { getActiveUiStyle, listCategories, listFavoriteSites, listSites } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,7 @@ export default function Home() {
   const favoriteSites = listFavoriteSites();
   const categories = groupSites();
   const allSites = listSites();
+  const uiStyle = getActiveUiStyle();
 
-  return <HomePage favoriteSites={favoriteSites} categories={categories} allSites={allSites} />;
+  return <HomePage favoriteSites={favoriteSites} categories={categories} allSites={allSites} uiStyle={uiStyle} />;
 }

@@ -82,11 +82,14 @@ export type Session = {
   createdAt: string;
 };
 
+export type UiStyle = "wechat" | "classic";
+
 export type Theme = {
   id: number;
   name: string;
   slug: string;
   description: string;
+  uiStyle: UiStyle;
   darkBackground: string;
   darkForeground: string;
   darkAccent: string;

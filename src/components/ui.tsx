@@ -11,7 +11,7 @@ export function Badge({
   return (
     <span
       className={clsx(
-        "chip inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium",
+        "chip inline-flex items-center px-2.5 py-1 text-xs font-medium",
         className,
       )}
     >
@@ -31,10 +31,10 @@ export function Button({
   return (
     <button
       className={clsx(
-        "focus-ring inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50",
+        "focus-ring inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50",
         variant === "primary" && "clay-button",
-        variant === "secondary" && "clay-panel hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5",
-        variant === "danger" && "bg-[var(--danger-soft)] text-[var(--danger)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5",
+        variant === "secondary" && "border border-[var(--line)] bg-[var(--control-bg)] text-secondary hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]",
+        variant === "danger" && "border border-[color-mix(in_srgb,var(--danger)_22%,transparent)] bg-[var(--danger-soft)] text-[var(--danger)] hover:brightness-105",
         className,
       )}
       {...props}
@@ -55,10 +55,10 @@ export function LinkButton({
   return (
     <a
       className={clsx(
-        "focus-ring inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-300",
+        "focus-ring inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
         variant === "primary" && "clay-button",
-        variant === "secondary" && "clay-panel hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5",
-        variant === "danger" && "bg-[var(--danger-soft)] text-[var(--danger)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5",
+        variant === "secondary" && "border border-[var(--line)] bg-[var(--control-bg)] text-secondary hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]",
+        variant === "danger" && "border border-[color-mix(in_srgb,var(--danger)_22%,transparent)] bg-[var(--danger-soft)] text-[var(--danger)] hover:brightness-105",
         className,
       )}
       {...props}
@@ -115,7 +115,7 @@ export function Field({
 }) {
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-medium text-[var(--soft-text)]">{label}</span>
+      <span className="text-sm font-medium text-secondary">{label}</span>
       {children}
       {hint ? <span className="text-xs text-[var(--muted)]">{hint}</span> : null}
     </label>
@@ -129,7 +129,7 @@ export function Checkbox({
   label: string;
 }) {
   return (
-    <label className="clay-panel flex items-center gap-3 rounded-[1.5rem] px-4 py-3 text-sm text-[var(--soft-text)] transition-all duration-300 hover:shadow-[var(--shadow-md)]">
+    <label className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-3 text-sm text-secondary transition-colors duration-200 hover:bg-[var(--panel-strong)]">
       <input type="checkbox" className="size-4 accent-[var(--accent)]" {...props} />
       {label}
     </label>
@@ -142,7 +142,7 @@ export function StatusMessage({ ok, message }: { ok: boolean; message: string })
   }
 
   return (
-    <p className={clsx("rounded-[1.5rem] px-4 py-3 text-sm", ok ? "chip-success" : "chip-danger")}>
+    <p className={clsx("rounded-xl px-4 py-3 text-sm", ok ? "chip-success" : "chip-danger")}>
       {message}
     </p>
   );
@@ -154,7 +154,7 @@ export function InitialMark({ label, className }: { label: string; className?: s
   return (
     <span
       className={clsx(
-        "clay-panel grid size-11 shrink-0 place-items-center rounded-[1.25rem] text-sm font-black tracking-tight text-[var(--foreground)]",
+        "grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[var(--field-bg)] text-sm font-semibold tracking-tight text-[var(--foreground)]",
         className,
       )}
     >

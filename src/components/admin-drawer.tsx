@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useId, useRef, useSt
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import type { AdminRoute } from "@/lib/admin-routing";
+import type { UiStyle } from "@/lib/types";
 
 type AdminDrawerContextValue = {
   close: () => void;
@@ -31,6 +32,7 @@ export function AdminDrawer({
   closeHref,
   returnFocusSelector,
   size = "md",
+  uiStyle = "wechat",
   children,
 }: {
   title: string;
@@ -39,6 +41,7 @@ export function AdminDrawer({
   closeHref?: AdminRoute;
   returnFocusSelector?: string;
   size?: "sm" | "md" | "lg";
+  uiStyle?: UiStyle;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -115,7 +118,7 @@ export function AdminDrawer({
 
   return (
     <AdminDrawerContext.Provider value={{ close }}>
-      <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-0 backdrop-blur-md animate-in fade-in duration-200 sm:p-4" role="presentation">
+      <div className={uiStyle === "classic" ? "fixed inset-0 z-50 grid place-items-center bg-black/45 p-0 backdrop-blur-md animate-in fade-in duration-200 sm:p-4" : "fixed inset-0 z-50 grid place-items-end bg-black/35 p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:place-items-center sm:p-4"} role="presentation">
         <button type="button" className="absolute inset-0 z-0 cursor-default" aria-label="关闭抽屉" onClick={close} />
         <section
           ref={drawerRef}
@@ -123,7 +126,9 @@ export function AdminDrawer({
           aria-modal="true"
           aria-labelledby={titleId}
           className={clsx(
-            "relative z-10 flex h-full w-full flex-col overflow-hidden rounded-none border border-[var(--line)] bg-[var(--card-bg)] text-[var(--foreground)] shadow-[var(--shadow-lg)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 sm:max-h-[calc(100vh-2rem)] sm:rounded-[2rem]",
+            uiStyle === "classic"
+              ? "relative z-10 flex h-full w-full flex-col overflow-hidden rounded-none border border-[var(--line)] bg-[var(--card-bg)] text-[var(--foreground)] shadow-[var(--shadow-lg)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 sm:max-h-[calc(100vh-2rem)] sm:rounded-[2rem]"
+              : "relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl border border-[var(--line)] bg-[var(--card-bg)] text-[var(--foreground)] shadow-[var(--shadow-lg)] animate-in fade-in slide-in-from-bottom-4 duration-200 sm:max-h-[calc(100vh-2rem)] sm:rounded-xl",
             size === "sm" && "sm:max-w-[640px]",
             size === "md" && "sm:max-w-[840px]",
             size === "lg" && "sm:max-w-[960px]",
@@ -137,9 +142,9 @@ export function AdminDrawer({
           onInputCapture={() => setIsDirty(true)}
           onChangeCapture={() => setIsDirty(true)}
         >
-          <header className="flex items-start justify-between gap-4 border-b border-[var(--line)] px-5 py-4">
+          <header className={uiStyle === "classic" ? "flex items-start justify-between gap-4 border-b border-[var(--line)] px-5 py-4" : "flex items-start justify-between gap-4 border-b border-[var(--line)] px-4 py-4 sm:px-5"}>
             <div className="min-w-0">
-              <h2 id={titleId} className="text-2xl font-black tracking-[-0.04em]">
+              <h2 id={titleId} className={uiStyle === "classic" ? "text-2xl font-black tracking-tight" : "text-xl font-semibold tracking-tight"}>
                 {title}
               </h2>
               {description ? <p className="mt-1 text-sm leading-6 text-tertiary">{description}</p> : null}
@@ -147,14 +152,14 @@ export function AdminDrawer({
             <button
               type="button"
               onClick={close}
-              className="focus-ring clay-panel grid size-10 shrink-0 place-items-center rounded-full text-secondary transition hover:text-[var(--foreground)]"
+              className={uiStyle === "classic" ? "focus-ring clay-panel grid size-10 shrink-0 place-items-center rounded-full text-secondary transition hover:text-[var(--foreground)]" : "focus-ring grid size-10 shrink-0 place-items-center rounded-lg text-secondary transition-colors hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"}
               aria-label="关闭弹窗"
               data-drawer-close
             >
               <X className="size-4" />
             </button>
           </header>
-          <div className={clsx("min-h-0 flex-1 overflow-y-auto px-5 py-5")}>{children}</div>
+          <div className={clsx(uiStyle === "classic" ? "min-h-0 flex-1 overflow-y-auto px-5 py-5" : "min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5")}>{children}</div>
         </section>
       </div>
     </AdminDrawerContext.Provider>
@@ -179,7 +184,7 @@ export function AdminDrawerCloseButton({
       type="button"
       onClick={context.close}
       className={clsx(
-        "focus-ring inline-flex items-center rounded-2xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]",
+        "focus-ring inline-flex min-h-11 items-center rounded-xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition-colors hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]",
         className,
       )}
     >
