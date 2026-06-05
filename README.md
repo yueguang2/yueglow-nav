@@ -295,6 +295,8 @@ server {
 
 ## Docker
 
+### 从源码构建
+
 构建并启动：
 
 ```bash
@@ -356,22 +358,84 @@ volumes:
 
 只要保留 `./data` 目录，重建容器不会丢失后台数据。
 
-如果直接使用 Docker Hub 镜像：
+### 使用 Docker Hub 镜像
+
+镜像仓库：
+
+```text
+2192098715/yueglow-nav
+```
+
+拉取最新镜像：
+
+```bash
+docker pull 2192098715/yueglow-nav:latest
+```
+
+直接运行：
 
 ```bash
 docker run -d \
   --name yueglow-nav \
+  --restart unless-stopped \
   -p 3000:3000 \
   -v ./data:/app/data \
   -e DATA_DIR=/app/data \
   -e LAZYCAT_OIDC_LOGIN_ENABLED=true \
-  -e LAZYCAT_PASSWORDLESS_LOGIN_ENABLED=true \
   -e LAZYCAT_AUTH_OIDC_CLIENT_ID=your-client-id \
   -e LAZYCAT_AUTH_OIDC_CLIENT_SECRET=your-client-secret \
   -e LAZYCAT_AUTH_OIDC_AUTH_URI=https://example.com/oauth/authorize \
   -e LAZYCAT_AUTH_OIDC_TOKEN_URI=https://example.com/oauth/token \
   -e LAZYCAT_AUTH_OIDC_USERINFO_URI=https://example.com/oauth/userinfo \
   2192098715/yueglow-nav:latest
+```
+
+如果不启用 OIDC，可以去掉所有 `LAZYCAT_*` 环境变量。首次访问 `/admin` 时创建本地管理员账号即可。
+
+使用远端镜像的 Compose 示例：
+
+```yaml
+services:
+  yueglow-nav:
+    image: 2192098715/yueglow-nav:latest
+    container_name: yueglow-nav
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data
+```
+
+更新镜像：
+
+```bash
+docker pull 2192098715/yueglow-nav:latest
+docker compose up -d
+```
+
+### 维护者推送镜像
+
+发布镜像前先确认代码已经提交，并使用当前提交短哈希作为版本标签：
+
+```bash
+GIT_SHA=$(git rev-parse --short HEAD)
+docker build -t 2192098715/yueglow-nav:latest -t 2192098715/yueglow-nav:$GIT_SHA .
+docker push 2192098715/yueglow-nav:latest
+docker push 2192098715/yueglow-nav:$GIT_SHA
+```
+
+在 PowerShell 中可以使用：
+
+```powershell
+$GIT_SHA = git rev-parse --short HEAD
+docker build -t 2192098715/yueglow-nav:latest -t "2192098715/yueglow-nav:$GIT_SHA" .
+docker push 2192098715/yueglow-nav:latest
+docker push "2192098715/yueglow-nav:$GIT_SHA"
 ```
 
 ## 备份
