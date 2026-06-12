@@ -13,6 +13,30 @@ type SmartLinkContextValue = {
 
 const SmartLinkContext = createContext<SmartLinkContextValue | null>(null);
 
+function closeOpenedWindow(openedWindow: Window | null) {
+  try {
+    if (openedWindow && !openedWindow.closed) {
+      openedWindow.close();
+    }
+  } catch {
+    // Cross-window cleanup is best effort only.
+  }
+}
+
+function openControlledBlankWindow() {
+  const openedWindow = window.open("about:blank", "_blank");
+
+  try {
+    if (openedWindow) {
+      openedWindow.opener = null;
+    }
+  } catch {
+    // Some browsers restrict opener assignment; the window handle is still usable.
+  }
+
+  return openedWindow;
+}
+
 export function SmartLinkProvider({ children, uiStyle = "wechat" }: { children: React.ReactNode; uiStyle?: UiStyle }) {
   const [state, setState] = useState<ResolveState>("idle");
   const [site, setSite] = useState<{ id: number; name: string; fallbackHref: string; linkCount?: number } | null>(null);
@@ -22,6 +46,9 @@ export function SmartLinkProvider({ children, uiStyle = "wechat" }: { children: 
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const requestIdRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const openedWindowRef = useRef<Window | null>(null);
 
   useEffect(() => {
     if (site) {
@@ -33,26 +60,71 @@ export function SmartLinkProvider({ children, uiStyle = "wechat" }: { children: 
     }
   }, [site]);
 
+  useEffect(() => {
+    return () => {
+      requestIdRef.current += 1;
+      abortControllerRef.current?.abort();
+      closeOpenedWindow(openedWindowRef.current);
+      openedWindowRef.current = null;
+    };
+  }, []);
+
+  function cancelActiveResolve({ closeWindow = true } = {}) {
+    requestIdRef.current += 1;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+
+    if (closeWindow) {
+      closeOpenedWindow(openedWindowRef.current);
+    }
+
+    openedWindowRef.current = null;
+  }
+
+  function closeDialog() {
+    cancelActiveResolve();
+    setSite(null);
+    setState("idle");
+    setTargetUrl("");
+    setOpenBlocked(false);
+  }
+
   async function resolve(siteInput: { id: number; name: string; fallbackHref: string; linkCount?: number }) {
+    cancelActiveResolve();
+
+    const requestId = requestIdRef.current;
+    const controller = new AbortController();
+    const openedWindow = openControlledBlankWindow();
+    abortControllerRef.current = controller;
+    openedWindowRef.current = openedWindow;
+
     setSite(siteInput);
     setState("loading");
     setMessage(siteInput.linkCount === 1 ? "正在打开链接..." : "正在并发测速，优选最快可用链接...");
     setTargetUrl("");
-    setOpenBlocked(false);
+    setOpenBlocked(!openedWindow);
 
     try {
       const response = await fetch(`/api/sites/${siteInput.id}/resolve`, {
         cache: "no-store",
+        signal: controller.signal,
         headers: {
           Accept: "application/json",
         },
       });
-      const data = (await response.json()) as {
-        ok?: boolean;
-        url?: string;
-        message?: string;
-        linkCount?: number;
-      };
+      const data = response.headers.get("content-type")?.includes("application/json")
+        ? ((await response.json()) as {
+            ok?: boolean;
+            url?: string;
+            message?: string;
+            linkCount?: number;
+          })
+        : { ok: false, message: "测速接口返回异常，请稍后重试" };
+
+      if (requestId !== requestIdRef.current) {
+        closeOpenedWindow(openedWindow);
+        return;
+      }
 
       if (!response.ok || !data.ok || !data.url) {
         throw new Error(data.message || "无法找到可用链接");
@@ -63,21 +135,46 @@ export function SmartLinkProvider({ children, uiStyle = "wechat" }: { children: 
       setMessage(data.message || "已选定最快可用链接，正在打开新标签...");
 
       window.setTimeout(() => {
-        const opened = window.open(data.url as string, "_blank", "noopener,noreferrer");
+        if (requestId !== requestIdRef.current) {
+          closeOpenedWindow(openedWindow);
+          return;
+        }
 
-        if (!opened) {
+        if (!openedWindow || openedWindow.closed) {
           setOpenBlocked(true);
           setMessage("浏览器阻止了新标签打开，请手动打开链接。");
           return;
         }
 
+        try {
+          openedWindow.location.href = data.url as string;
+        } catch {
+          setOpenBlocked(true);
+          setMessage("新标签无法自动跳转，请手动打开链接。");
+          return;
+        }
+
         window.setTimeout(() => {
+          if (requestId !== requestIdRef.current) {
+            return;
+          }
+
+          abortControllerRef.current = null;
+          openedWindowRef.current = null;
           setSite(null);
           setState("idle");
           setTargetUrl("");
         }, 200);
       }, 100);
     } catch (error) {
+      if (controller.signal.aborted || requestId !== requestIdRef.current) {
+        closeOpenedWindow(openedWindow);
+        return;
+      }
+
+      closeOpenedWindow(openedWindow);
+      openedWindowRef.current = null;
+      abortControllerRef.current = null;
       setState("error");
       setMessage(error instanceof Error ? error.message : "测速失败，请稍后重试");
     }
@@ -99,10 +196,7 @@ export function SmartLinkProvider({ children, uiStyle = "wechat" }: { children: 
             <button
               ref={closeButtonRef}
               type="button"
-              onClick={() => {
-                setSite(null);
-                setState("idle");
-              }}
+              onClick={closeDialog}
               className={isClassic ? "focus-ring clay-panel absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-full text-[var(--text-secondary)] transition-all duration-300 hover:scale-110 hover:shadow-[var(--shadow-md)] hover:text-[var(--foreground)]" : "focus-ring absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-lg text-[var(--text-secondary)] transition-colors duration-200 hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"}
               aria-label="关闭对话框"
             >
@@ -163,9 +257,7 @@ export function SmartLinkProvider({ children, uiStyle = "wechat" }: { children: 
                   <button
                     type="button"
                     onClick={() => {
-                      setSite(null);
-                      setState("idle");
-                      setTargetUrl("");
+                      closeDialog();
                     }}
                     className="focus-ring inline-flex min-h-11 items-center rounded-xl border border-[var(--line)] bg-[var(--control-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition-colors hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]"
                   >

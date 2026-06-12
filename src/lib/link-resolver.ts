@@ -10,6 +10,11 @@ export type ResolvedLink = {
   elapsed?: number;
 };
 
+type ProbeAttempt = {
+  success: boolean;
+  elapsed?: number;
+};
+
 function isValidUrl(urlString: string): boolean {
   try {
     const url = new URL(urlString);
@@ -45,50 +50,108 @@ function isValidUrl(urlString: string): boolean {
   }
 }
 
+function isProbeSuccess(response: Response, allowPartialContent = false) {
+  return response.ok || (allowPartialContent && response.status === 206) || (response.status >= 300 && response.status < 400);
+}
+
+async function fetchProbe(url: string, init: RequestInit, startedAt: number, allowPartialContent = false): Promise<ProbeAttempt> {
+  try {
+    const response = await fetch(url, init);
+
+    if (isProbeSuccess(response, allowPartialContent)) {
+      return { success: true, elapsed: performance.now() - startedAt };
+    }
+  } catch {
+    return { success: false };
+  }
+
+  return { success: false };
+}
+
 async function probe(link: SiteLink) {
   if (!isValidUrl(link.url)) {
     return undefined;
   }
 
   const startedAt = performance.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const headController = new AbortController();
+  const getController = new AbortController();
+  const controllers = [headController, getController];
+  const timer = setTimeout(() => {
+    for (const controller of controllers) {
+      controller.abort();
+    }
+  }, timeoutMs);
 
   try {
-    const headPromise = fetch(link.url, {
-      method: "HEAD",
-      cache: "no-store",
-      redirect: "follow",
-      signal: controller.signal,
-    }).then((response) => {
-      if (response.ok || (response.status >= 300 && response.status < 400)) {
-        return { success: true as const, elapsed: performance.now() - startedAt };
+    const attempts = [
+      fetchProbe(
+        link.url,
+        {
+          method: "HEAD",
+          cache: "no-store",
+          redirect: "follow",
+          signal: headController.signal,
+        },
+        startedAt,
+      ),
+      fetchProbe(
+        link.url,
+        {
+          method: "GET",
+          cache: "no-store",
+          redirect: "follow",
+          signal: getController.signal,
+          headers: {
+            Range: "bytes=0-0",
+          },
+        },
+        startedAt,
+        true,
+      ),
+    ];
+
+    return await new Promise<{ link: SiteLink; elapsed: number } | undefined>((resolve) => {
+      let pending = attempts.length;
+      let settled = false;
+
+      function finish(result: { link: SiteLink; elapsed: number } | undefined) {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+
+        for (const controller of controllers) {
+          controller.abort();
+        }
+
+        resolve(result);
       }
-      return { success: false as const };
-    }).catch(() => ({ success: false as const }));
 
-    const getPromise = fetch(link.url, {
-      method: "GET",
-      cache: "no-store",
-      redirect: "follow",
-      signal: controller.signal,
-      headers: {
-        Range: "bytes=0-0",
-      },
-    }).then((response) => {
-      if (response.ok || response.status === 206 || (response.status >= 300 && response.status < 400)) {
-        return { success: true as const, elapsed: performance.now() - startedAt };
+      for (const attempt of attempts) {
+        attempt
+          .then((result) => {
+            if (result.success && result.elapsed !== undefined) {
+              finish({ link, elapsed: result.elapsed });
+              return;
+            }
+
+            pending -= 1;
+
+            if (pending === 0) {
+              finish(undefined);
+            }
+          })
+          .catch(() => {
+            pending -= 1;
+
+            if (pending === 0) {
+              finish(undefined);
+            }
+          });
       }
-      return { success: false as const };
-    }).catch(() => ({ success: false as const }));
-
-    const result = await Promise.race([headPromise, getPromise]);
-
-    if (result.success) {
-      return { link, elapsed: result.elapsed };
-    }
-
-    return undefined;
+    });
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.error(`Probe failed for ${link.url}:`, error);
