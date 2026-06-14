@@ -56,7 +56,61 @@ export const OCEAN_THEME = {
   sortOrder: 20,
 } satisfies BuiltInTheme;
 
-export const BUILT_IN_THEMES = [WECHAT_THEME, OCEAN_THEME] as const;
+export const MISTY_GLASS_THEME = {
+  name: "晨雾灰",
+  slug: "misty-glass",
+  description: "毛玻璃拟态设计，半透明、轻盈、现代",
+  uiStyle: "glass",
+  darkBackground: "#0f1419",
+  darkForeground: "#e8eef3",
+  darkAccent: "#67b8f7",
+  darkAccent2: "#8dd4ff",
+  darkPanel: "#192329",
+  darkPanelStrong: "#243340",
+  darkCardBg: "#141c24",
+  darkFieldBg: "#0d1419",
+  lightBackground: "#f8fafb",
+  lightForeground: "#1a1f24",
+  lightAccent: "#2196f3",
+  lightAccent2: "#42a5f5",
+  lightPanel: "#ffffff",
+  lightPanelStrong: "#f5f7f9",
+  lightCardBg: "#ffffff",
+  lightFieldBg: "#f8fafb",
+  useBackdropBlur: true,
+  useGradientGlow: false,
+  isActive: false,
+  sortOrder: 30,
+} satisfies BuiltInTheme;
+
+export const PURE_MINIMAL_THEME = {
+  name: "纯粹黑白",
+  slug: "pure-minimal",
+  description: "极简主义，无边框、大留白、纯平面",
+  uiStyle: "minimal",
+  darkBackground: "#000000",
+  darkForeground: "#ffffff",
+  darkAccent: "#ffffff",
+  darkAccent2: "#d0d0d0",
+  darkPanel: "#0a0a0a",
+  darkPanelStrong: "#141414",
+  darkCardBg: "#000000",
+  darkFieldBg: "#1a1a1a",
+  lightBackground: "#ffffff",
+  lightForeground: "#000000",
+  lightAccent: "#000000",
+  lightAccent2: "#404040",
+  lightPanel: "#ffffff",
+  lightPanelStrong: "#f5f5f5",
+  lightCardBg: "#ffffff",
+  lightFieldBg: "#fafafa",
+  useBackdropBlur: false,
+  useGradientGlow: false,
+  isActive: false,
+  sortOrder: 40,
+} satisfies BuiltInTheme;
+
+export const BUILT_IN_THEMES = [WECHAT_THEME, OCEAN_THEME, MISTY_GLASS_THEME, PURE_MINIMAL_THEME] as const;
 export const BUILT_IN_THEME_SLUGS = BUILT_IN_THEMES.map((theme) => theme.slug);
 export const BUILT_IN_THEME_NAMES = BUILT_IN_THEMES.map((theme) => theme.name);
 

@@ -1,0 +1,16 @@
+services:
+  yueglow-nav:
+    image: 2192098715/yueglow-nav:latest
+    container_name: yueglow-nav
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      DATA_DIR: /app/data
+      LAZYCAT_OIDC_LOGIN_ENABLED: "${LAZYCAT_OIDC_LOGIN_ENABLED:-false}"
+      LAZYCAT_PASSWORDLESS_LOGIN_ENABLED: "${LAZYCAT_PASSWORDLESS_LOGIN_ENABLED:-false}"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data

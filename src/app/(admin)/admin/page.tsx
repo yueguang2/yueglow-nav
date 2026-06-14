@@ -7,6 +7,8 @@ import { getActiveUiStyle, getDashboardStats, listCategories, listSites } from "
 import { isLazycatPasswordlessLoginEnabled } from "@/lib/lazycat";
 import { isOidcEnabled } from "@/lib/oidc";
 
+import type { UiStyle } from "@/lib/types";
+
 export default function AdminDashboardPage() {
   const stats = getDashboardStats();
   const categories = listCategories({ includeHidden: true });
@@ -114,7 +116,7 @@ export default function AdminDashboardPage() {
   );
 }
 
-function SectionHeader({ title, href, uiStyle }: { title: string; href: string; uiStyle: "wechat" | "classic" }) {
+function SectionHeader({ title, href, uiStyle }: { title: string; href: string; uiStyle: UiStyle }) {
   const isClassic = uiStyle === "classic";
 
   return (
