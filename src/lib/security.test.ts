@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createToken, hashToken } from "./crypto";
+import { csrfFieldName, getCsrfToken, verifyCsrfToken } from "./csrf";
 import { isAllowedOidcEndpoint } from "./oidc";
 import { classifyUrl } from "./url-security";
 import { colorSchema } from "./validation";
@@ -41,5 +42,20 @@ describe("token hashing", () => {
     expect(hashed).not.toBe(token);
     expect(hashed).toHaveLength(64);
     expect(hashToken(token)).toBe(hashed);
+  });
+});
+
+describe("csrf tokens", () => {
+  it("accepts signed tokens and rejects tampering", () => {
+    const token = getCsrfToken();
+    const formData = new FormData();
+    formData.set(csrfFieldName, token);
+
+    expect(verifyCsrfToken(formData)).toBe(true);
+
+    const tampered = new FormData();
+    tampered.set(csrfFieldName, token.replace(/\.[^.]+$/, ".bad"));
+
+    expect(verifyCsrfToken(tampered)).toBe(false);
   });
 });
