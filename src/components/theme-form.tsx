@@ -108,6 +108,8 @@ export function ThemeForm({ theme, returnTo, defaultSlug = "custom-theme", csrfT
         >
           <option value="wechat">微信简洁</option>
           <option value="classic">海洋经典</option>
+          <option value="glass">毛玻璃</option>
+          <option value="minimal">极简主义</option>
         </Select>
       </Field>
 

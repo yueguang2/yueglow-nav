@@ -56,6 +56,8 @@ export const OCEAN_THEME = {
   sortOrder: 20,
 } satisfies BuiltInTheme;
 
+export const DEFAULT_THEME_SLUG = OCEAN_THEME.slug;
+
 export const MISTY_GLASS_THEME = {
   name: "晨雾灰",
   slug: "misty-glass",

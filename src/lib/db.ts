@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
-import { BUILT_IN_THEMES, WECHAT_THEME, isBuiltInThemeName, isBuiltInThemeSlug, type BuiltInTheme } from "./default-theme";
+import { BUILT_IN_THEMES, DEFAULT_THEME_SLUG, WECHAT_THEME, isBuiltInThemeName, isBuiltInThemeSlug, type BuiltInTheme } from "./default-theme";
 import type { AdminUser, Category, PaginatedResult, Session, Site, SiteInput, SiteLink, Theme, UiStyle } from "./types";
 
 const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(process.cwd(), "data");
@@ -36,7 +36,7 @@ function ensureColumn(database: Database.Database, tableName: "admin_users" | "c
 }
 
 function normalizeUiStyle(value: unknown): UiStyle {
-  return value === "classic" ? "classic" : "wechat";
+  return value === "wechat" || value === "classic" || value === "glass" || value === "minimal" ? value : "wechat";
 }
 
 function mapCategory(row: Record<string, unknown>): Category {
@@ -322,7 +322,7 @@ function normalizeActiveTheme(database: Database.Database, preferredActiveId?: n
     preferredActiveId && database.prepare("SELECT id FROM themes WHERE id = ?").get(preferredActiveId);
   const fallbackRow =
     (preferredExists ? ({ id: preferredActiveId } as { id: number }) : undefined) ??
-    (database.prepare("SELECT id FROM themes WHERE slug = 'wechat'").get() as { id: number } | undefined) ??
+    (database.prepare("SELECT id FROM themes WHERE slug = ?").get(DEFAULT_THEME_SLUG) as { id: number } | undefined) ??
     (database.prepare("SELECT id FROM themes ORDER BY sort_order ASC, id ASC LIMIT 1").get() as { id: number } | undefined);
 
   if (!fallbackRow) {
@@ -600,6 +600,15 @@ export function getDb() {
   }
 
   return db;
+}
+
+export function closeDbForTests() {
+  if (process.env.NODE_ENV !== "test") {
+    return;
+  }
+
+  db?.close();
+  db = undefined;
 }
 
 export function getAdminCount() {

@@ -14,6 +14,13 @@ type ThemeCardProps = {
   csrfToken: string;
 };
 
+const uiStyleLabels = {
+  wechat: "微信简洁",
+  classic: "海洋经典",
+  glass: "毛玻璃",
+  minimal: "极简主义",
+} as const;
+
 export function ThemeCard({ theme, returnTo, csrfToken }: ThemeCardProps) {
   const isPreset = isBuiltInThemeSlug(theme.slug);
 
@@ -60,7 +67,7 @@ export function ThemeCard({ theme, returnTo, csrfToken }: ThemeCardProps) {
               title="浅色副色"
             />
             <span className="ml-2 text-xs text-faint">
-              {theme.uiStyle === "classic" ? "海洋经典" : "微信简洁"} · {theme.useGradientGlow ? "动态背景" : "纯色背景"}
+              {uiStyleLabels[theme.uiStyle]} · {theme.useGradientGlow ? "动态背景" : "纯色背景"}
             </span>
           </div>
         </div>

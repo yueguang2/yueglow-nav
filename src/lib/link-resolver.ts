@@ -132,6 +132,10 @@ async function probe(link: SiteLink) {
   }
 }
 
+function firstValidLink(links: SiteLink[]) {
+  return links.find((link) => classifyUrl(link.url).ok);
+}
+
 export async function resolveFastestLink(siteId: number, links: SiteLink[]): Promise<string | undefined> {
   const result = await resolveFastestLinkDetail(siteId, links);
   return result.url;
@@ -173,7 +177,17 @@ export async function resolveFastestLinkDetail(siteId: number, links: SiteLink[]
     .filter((result): result is { link: SiteLink; elapsed: number } => Boolean(result))
     .sort((a, b) => a.elapsed - b.elapsed)[0];
 
-  const url = fastest?.link.url ?? enabledLinks[0].url;
+  const fallback = fastest ? undefined : firstValidLink(enabledLinks);
+
+  if (!fastest && !fallback) {
+    return {
+      ok: false,
+      source: "none",
+      message: "链接地址不可用",
+    };
+  }
+
+  const url = fastest?.link.url ?? fallback?.url;
 
   return {
     ok: true,
