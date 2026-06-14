@@ -12,6 +12,7 @@ export function ConfirmSubmitForm({
   pendingText = "处理中...",
   className,
   buttonClassName,
+  csrfToken,
 }: {
   action: ComponentProps<"form">["action"];
   confirmMessage: string;
@@ -20,6 +21,7 @@ export function ConfirmSubmitForm({
   pendingText?: string;
   className?: string;
   buttonClassName?: string;
+  csrfToken?: string;
 }) {
   return (
     <form
@@ -31,6 +33,7 @@ export function ConfirmSubmitForm({
         }
       }}
     >
+      {csrfToken ? <input type="hidden" name="csrfToken" value={csrfToken} /> : null}
       {children}
       <ConfirmSubmitButton className={buttonClassName} pendingText={pendingText}>
         {buttonText}

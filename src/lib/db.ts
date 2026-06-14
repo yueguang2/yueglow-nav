@@ -24,12 +24,12 @@ function normalizePagination(page: number, pageSize: number, total: number) {
   return { page: safePage, pageSize: safePageSize, totalPages, offset };
 }
 
-function hasColumn(database: Database.Database, tableName: "categories" | "sites" | "themes", columnName: string) {
+function hasColumn(database: Database.Database, tableName: "admin_users" | "categories" | "sites" | "themes", columnName: string) {
   const rows = database.prepare(`PRAGMA table_info(${tableName})`).all() as { name: string }[];
   return rows.some((row) => row.name === columnName);
 }
 
-function ensureColumn(database: Database.Database, tableName: "categories" | "sites" | "themes", columnName: string, definition: string) {
+function ensureColumn(database: Database.Database, tableName: "admin_users" | "categories" | "sites" | "themes", columnName: string, definition: string) {
   if (!hasColumn(database, tableName, columnName)) {
     database.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
   }
@@ -376,6 +376,8 @@ function migrate(database: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
+      oidc_subject TEXT UNIQUE,
+      oidc_email TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -461,6 +463,8 @@ function migrate(database: Database.Database) {
   ensureColumn(database, "categories", "is_pinned", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(database, "sites", "is_pinned", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(database, "themes", "ui_style", "TEXT NOT NULL DEFAULT 'wechat'");
+  ensureColumn(database, "admin_users", "oidc_subject", "TEXT UNIQUE");
+  ensureColumn(database, "admin_users", "oidc_email", "TEXT");
 
   const sitesWithoutLinks = database
     .prepare(
@@ -605,20 +609,53 @@ export function getAdminCount() {
 
 export function getAdminByUsername(username: string) {
   return getDb()
-    .prepare("SELECT id, username, password_hash AS passwordHash, created_at AS createdAt FROM admin_users WHERE username = ?")
+    .prepare("SELECT id, username, password_hash AS passwordHash, oidc_subject AS oidcSubject, oidc_email AS oidcEmail, created_at AS createdAt FROM admin_users WHERE username = ?")
     .get(username) as AdminUser | undefined;
 }
 
 export function getAdminById(id: number) {
   return getDb()
-    .prepare("SELECT id, username, password_hash AS passwordHash, created_at AS createdAt FROM admin_users WHERE id = ?")
+    .prepare("SELECT id, username, password_hash AS passwordHash, oidc_subject AS oidcSubject, oidc_email AS oidcEmail, created_at AS createdAt FROM admin_users WHERE id = ?")
     .get(id) as AdminUser | undefined;
+}
+
+export function getAdminByOidcSubject(subject: string) {
+  return getDb()
+    .prepare("SELECT id, username, password_hash AS passwordHash, oidc_subject AS oidcSubject, oidc_email AS oidcEmail, created_at AS createdAt FROM admin_users WHERE oidc_subject = ?")
+    .get(subject) as AdminUser | undefined;
 }
 
 export function createAdmin(username: string, passwordHash: string) {
   return getDb()
     .prepare("INSERT INTO admin_users (username, password_hash) VALUES (?, ?)")
     .run(username, passwordHash);
+}
+
+export function createFirstAdmin(username: string, passwordHash: string) {
+  const database = getDb();
+  const transaction = database.transaction(() => {
+    const row = database.prepare("SELECT COUNT(*) AS count FROM admin_users").get() as { count: number };
+
+    if (row.count > 0) {
+      return undefined;
+    }
+
+    return database.prepare("INSERT INTO admin_users (username, password_hash) VALUES (?, ?)").run(username, passwordHash);
+  });
+
+  return transaction();
+}
+
+export function createOidcAdmin(input: { username: string; passwordHash: string; oidcSubject: string; oidcEmail?: string }) {
+  return getDb()
+    .prepare("INSERT INTO admin_users (username, password_hash, oidc_subject, oidc_email) VALUES (?, ?, ?, ?)")
+    .run(input.username, input.passwordHash, input.oidcSubject, input.oidcEmail ?? null);
+}
+
+export function bindOidcAdmin(adminId: number, oidcSubject: string, oidcEmail?: string) {
+  return getDb()
+    .prepare("UPDATE admin_users SET oidc_subject = ?, oidc_email = ? WHERE id = ?")
+    .run(oidcSubject, oidcEmail ?? null, adminId);
 }
 
 export function updateAdminPassword(adminId: number, passwordHash: string) {
@@ -641,6 +678,10 @@ export function getSession(sessionId: string) {
 
 export function deleteSession(sessionId: string) {
   return getDb().prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+}
+
+export function deleteOtherSessions(adminId: number, currentSessionId: string) {
+  return getDb().prepare("DELETE FROM sessions WHERE admin_id = ? AND id <> ?").run(adminId, currentSessionId);
 }
 
 export function deleteExpiredSessions() {

@@ -9,6 +9,7 @@ import { Badge, Checkbox, Field, InitialMark, LinkButton, TextInput, Textarea } 
 import { deleteCategoryAction, saveCategoryAction, toggleCategoryPinAction } from "@/lib/actions";
 import { normalizePageParam, pageHref, parsePage } from "@/lib/admin-routing";
 import { countSitesByCategory, getActiveUiStyle, getCategoryById, listCategoriesPage } from "@/lib/db";
+import { getCsrfToken } from "@/lib/csrf";
 import type { Category, UiStyle } from "@/lib/types";
 
 const CATEGORY_PAGE_SIZE = 12;
@@ -49,6 +50,7 @@ async function CategoriesContent({
   const categories = paginatedCategories.items;
   const currentHref = pageHref("/admin/categories", paginatedCategories.page);
   const uiStyle = getActiveUiStyle();
+  const csrfToken = await getCsrfToken();
   const isClassic = uiStyle === "classic";
   const editId = Number(params.edit);
   const isEditing = editId > 0;
@@ -98,6 +100,7 @@ async function CategoriesContent({
                   currentHref={currentHref}
                   currentPage={paginatedCategories.page}
                   uiStyle={uiStyle}
+                  csrfToken={csrfToken}
                 />
               ))}
             </div>
@@ -116,16 +119,16 @@ async function CategoriesContent({
           size="sm"
           uiStyle={uiStyle}
         >
-          <CategoryForm category={editingCategory} returnTo={currentHref} />
+          <CategoryForm category={editingCategory} returnTo={currentHref} csrfToken={csrfToken} />
         </AdminModal>
       )}
     </div>
   );
 }
 
-function CategoryForm({ category, returnTo }: { category?: Category; returnTo: string }) {
+function CategoryForm({ category, returnTo, csrfToken }: { category?: Category; returnTo: string; csrfToken: string }) {
   return (
-    <ActionForm action={saveCategoryAction} className="grid gap-4">
+    <ActionForm action={saveCategoryAction} csrfToken={csrfToken} className="grid gap-4">
       <input type="hidden" name="id" value={category?.id ?? 0} />
       <input type="hidden" name="returnTo" value={returnTo} />
       <Field label="分类名称">
@@ -160,12 +163,14 @@ function CategoryListItem({
   currentHref,
   currentPage,
   uiStyle,
+  csrfToken,
 }: {
   category: Category;
   siteCount: number;
   currentHref: string;
   currentPage: number;
   uiStyle: UiStyle;
+  csrfToken: string;
 }) {
   const isClassic = uiStyle === "classic";
 
@@ -188,6 +193,7 @@ function CategoryListItem({
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <form action={toggleCategoryPinAction}>
+            <input type="hidden" name="csrfToken" value={csrfToken} />
             <input type="hidden" name="id" value={category.id} />
             <input type="hidden" name="returnTo" value={currentHref} />
             <button
@@ -205,7 +211,7 @@ function CategoryListItem({
           >
             编辑
           </a>
-          <ConfirmSubmitForm action={deleteCategoryAction} confirmMessage={`确定删除分类「${category.name}」吗？`} buttonText="删除" pendingText="正在删除...">
+          <ConfirmSubmitForm action={deleteCategoryAction} confirmMessage={`确定删除分类「${category.name}」吗？`} buttonText="删除" pendingText="正在删除..." csrfToken={csrfToken}>
             <input type="hidden" name="id" value={category.id} />
             <input type="hidden" name="returnTo" value={currentHref} />
           </ConfirmSubmitForm>

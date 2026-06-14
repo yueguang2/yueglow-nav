@@ -1,12 +1,7 @@
 import type { NextConfig } from "next";
 
-const defaultDevOriginHosts = ["ailab.heiyu.space", "192.168.31.177"];
-const defaultServerActionOriginHosts = [
-  "ailab.heiyu.space",
-  "ailab.heiyu.space:3000",
-  "192.168.31.177",
-  "192.168.31.177:3000",
-];
+const defaultDevOriginHosts: string[] = [];
+const defaultServerActionOriginHosts: string[] = [];
 
 function parseOriginList(value: string | undefined, mode: "hostname" | "host") {
   if (!value) {
@@ -34,6 +29,32 @@ function unique(values: string[]) {
 const nextConfig: NextConfig = {
   typedRoutes: true,
   output: "standalone",
+  async headers() {
+    const csp = [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      "object-src 'none'",
+      "img-src 'self' data: blob:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+    ].join("; ");
+
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Content-Security-Policy-Report-Only", value: csp },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+    ];
+  },
   allowedDevOrigins: unique([
     ...defaultDevOriginHosts,
     ...parseOriginList(process.env.NEXT_ALLOWED_DEV_ORIGINS, "hostname"),

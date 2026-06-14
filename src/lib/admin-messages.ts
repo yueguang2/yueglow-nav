@@ -26,6 +26,7 @@ export const adminMessages = {
   "theme-active-delete-blocked": { tone: "error", text: "当前激活主题不能删除，请先激活其他主题。" },
   "theme-missing": { tone: "error", text: "主题不存在或已被删除。" },
   "theme-preset-readonly": { tone: "error", text: "系统预设主题不可编辑或删除，请创建自定义主题。" },
+  "csrf-invalid": { tone: "error", text: "表单已过期，请刷新后重试。" },
 } as const satisfies Record<string, AdminMessage>;
 
 export type AdminMessageCode = keyof typeof adminMessages;

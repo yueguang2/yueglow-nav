@@ -16,9 +16,10 @@ type ThemeFormProps = {
   theme: Theme | null;
   returnTo: AdminRoute;
   defaultSlug?: string;
+  csrfToken: string;
 };
 
-export function ThemeForm({ theme, returnTo, defaultSlug = "custom-theme" }: ThemeFormProps) {
+export function ThemeForm({ theme, returnTo, defaultSlug = "custom-theme", csrfToken }: ThemeFormProps) {
   const [previewMode, setPreviewMode] = useState<"dark" | "light">("dark");
   const [formData, setFormData] = useState({
     name: theme?.name || "",
@@ -64,7 +65,7 @@ export function ThemeForm({ theme, returnTo, defaultSlug = "custom-theme" }: The
   };
 
   return (
-    <ActionForm action={saveThemeAction} className="grid gap-4">
+    <ActionForm action={saveThemeAction} csrfToken={csrfToken} className="grid gap-4">
       {theme && <input type="hidden" name="id" value={theme.id} />}
       <input type="hidden" name="returnTo" value={returnTo} />
 

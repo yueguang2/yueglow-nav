@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createToken } from "./crypto";
-import { createSession, deleteExpiredSessions, deleteSession, getAdminById, getSession } from "./db";
+import { createToken, hashToken } from "./crypto";
+import { createSession, deleteExpiredSessions, deleteOtherSessions, deleteSession, getAdminById, getSession } from "./db";
 
 export const sessionCookieName = "nav_session";
 
@@ -13,7 +13,7 @@ export async function setSession(adminId: number) {
   const sessionId = createToken();
   const expiresAt = new Date(Date.now() + sessionDurationMs);
 
-  createSession(sessionId, adminId, expiresAt);
+  createSession(hashToken(sessionId), adminId, expiresAt);
 
   const cookieStore = await cookies();
   cookieStore.set(sessionCookieName, sessionId, {
@@ -30,6 +30,7 @@ export async function clearSession() {
   const sessionId = cookieStore.get(sessionCookieName)?.value;
 
   if (sessionId) {
+    deleteSession(hashToken(sessionId));
     deleteSession(sessionId);
   }
 
@@ -44,10 +45,20 @@ export async function getCurrentAdmin() {
     return undefined;
   }
 
-  const session = getSession(sessionId);
+  let session = getSession(hashToken(sessionId));
+
+  if (!session) {
+    session = getSession(sessionId);
+
+    if (session && new Date(session.expiresAt).getTime() > Date.now()) {
+      deleteSession(sessionId);
+      createSession(hashToken(sessionId), session.adminId, new Date(session.expiresAt));
+    }
+  }
 
   if (!session || new Date(session.expiresAt).getTime() <= Date.now()) {
     if (session) {
+      deleteSession(hashToken(sessionId));
       deleteSession(sessionId);
     }
 
@@ -65,4 +76,18 @@ export async function requireAdmin() {
   }
 
   return admin;
+}
+
+export async function rotateSession(adminId: number) {
+  await clearSession();
+  await setSession(adminId);
+}
+
+export async function clearOtherSessionsForCurrentAdmin(adminId: number) {
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get(sessionCookieName)?.value;
+
+  if (sessionId) {
+    deleteOtherSessions(adminId, hashToken(sessionId));
+  }
 }

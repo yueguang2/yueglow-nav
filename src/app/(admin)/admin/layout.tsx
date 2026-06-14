@@ -7,6 +7,7 @@ import { getCurrentAdmin } from "@/lib/auth";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { AdminNav } from "@/components/admin-nav";
 import { getActiveUiStyle } from "@/lib/db";
+import { getCsrfToken } from "@/lib/csrf";
 
 export default async function AdminLayout({
   children,
@@ -19,6 +20,7 @@ export default async function AdminLayout({
     redirect("/admin/login");
   }
   const uiStyle = getActiveUiStyle();
+  const csrfToken = await getCsrfToken();
   const isClassic = uiStyle === "classic";
 
   if (isClassic) {
@@ -46,6 +48,7 @@ export default async function AdminLayout({
               <p className="text-sm font-semibold">{admin.username}</p>
               <p className="mt-1 text-xs text-faint">当前管理员</p>
               <form action={logoutAction} className="mt-4">
+                <input type="hidden" name="csrfToken" value={csrfToken} />
                 <button className="focus-ring flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--field-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition-all duration-200 hover:scale-[1.02] hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]">
                   <LogOut className="size-4" />
                   退出登录
@@ -83,6 +86,7 @@ export default async function AdminLayout({
           <div className="hidden rounded-xl border border-[var(--line)] bg-[var(--card-bg)] p-3 lg:grid lg:gap-3">
             <ThemeSwitcher compact />
             <form action={logoutAction}>
+              <input type="hidden" name="csrfToken" value={csrfToken} />
               <button className="focus-ring flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--field-bg)] px-4 py-2.5 text-sm font-semibold text-secondary transition-colors duration-200 hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]">
                 <LogOut className="size-4" />
                 退出登录
@@ -93,6 +97,7 @@ export default async function AdminLayout({
           <div className="flex gap-2 lg:hidden">
             <ThemeSwitcher compact />
             <form action={logoutAction} className="shrink-0">
+              <input type="hidden" name="csrfToken" value={csrfToken} />
               <button className="focus-ring flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--field-bg)] px-3 text-sm font-semibold text-secondary transition-colors duration-200 hover:bg-[var(--panel-strong)] hover:text-[var(--foreground)]" aria-label="退出登录">
                 <LogOut className="size-4" />
               </button>
@@ -105,4 +110,3 @@ export default async function AdminLayout({
     </main>
   );
 }
-

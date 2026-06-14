@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
-import { createAdmin, getAdminByUsername } from "./db";
+import { bindOidcAdmin, createOidcAdmin, getAdminByOidcSubject, getAdminByUsername } from "./db";
 import { setSession } from "./auth";
 import { createToken, hashPassword } from "./crypto";
 import { isLazycatOidcLoginEnabled } from "./lazycat";
+import { readBooleanEnv, readCsvEnv, readHostSetEnv } from "./runtime-config";
+import { logSecurityEvent } from "./security-log";
 
 const stateCookieName = "nav_oidc_state";
 const stateMaxAgeSeconds = 10 * 60;
@@ -32,6 +34,10 @@ export function getOidcConfig() {
   const userinfoUri = process.env.OIDC_USERINFO_URI || process.env.LAZYCAT_AUTH_OIDC_USERINFO_URI;
 
   if (!clientId || !clientSecret || !authUri || !tokenUri || !userinfoUri) {
+    return undefined;
+  }
+
+  if (![authUri, tokenUri, userinfoUri].every(isAllowedOidcEndpoint)) {
     return undefined;
   }
 
@@ -151,6 +157,15 @@ export async function fetchOidcUserInfo(accessToken: string) {
 }
 
 export function isOidcAdmin(userInfo: OidcUserInfo) {
+  const { allowedSubjects, allowedEmails } = getOidcAdminAllowlist();
+
+  if (allowedSubjects.size > 0 || allowedEmails.size > 0) {
+    return Boolean(
+      (userInfo.sub && allowedSubjects.has(userInfo.sub)) ||
+        (userInfo.email && allowedEmails.has(userInfo.email.toLowerCase())),
+    );
+  }
+
   const groups = userInfo.groups;
 
   if (Array.isArray(groups)) {
@@ -161,20 +176,69 @@ export function isOidcAdmin(userInfo: OidcUserInfo) {
 }
 
 export async function signInOidcAdmin(userInfo: OidcUserInfo) {
+  if (!userInfo.sub) {
+    throw new Error("OIDC subject is required");
+  }
+
   const username = normalizeUsername(userInfo.preferred_username || userInfo.email || userInfo.name || userInfo.sub);
-  let admin = getAdminByUsername(username);
+  let admin = getAdminByOidcSubject(userInfo.sub);
+  const hasAllowlist = hasOidcAdminAllowlist();
 
   if (!admin) {
-    const result = createAdmin(username, hashPassword(createToken()));
-    admin = {
-      id: Number(result.lastInsertRowid),
-      username,
-      passwordHash: "",
-      createdAt: new Date().toISOString(),
-    };
+    const existingByUsername = getAdminByUsername(username);
+
+    if (existingByUsername && !existingByUsername.oidcSubject) {
+      bindOidcAdmin(existingByUsername.id, userInfo.sub, userInfo.email);
+      admin = existingByUsername;
+    } else if (!hasAllowlist) {
+      throw new Error("OIDC admin allowlist is required for auto-provisioning");
+    } else if (existingByUsername?.oidcSubject && existingByUsername.oidcSubject !== userInfo.sub) {
+      const collisionSafeUsername = `${username}-${userInfo.sub.slice(0, 8)}`;
+      const result = createOidcAdmin({
+        username: collisionSafeUsername,
+        passwordHash: hashPassword(createToken()),
+        oidcSubject: userInfo.sub,
+        oidcEmail: userInfo.email,
+      });
+      admin = {
+        id: Number(result.lastInsertRowid),
+        username: collisionSafeUsername,
+        passwordHash: "",
+        oidcSubject: userInfo.sub,
+        oidcEmail: userInfo.email,
+        createdAt: new Date().toISOString(),
+      };
+    } else {
+      const result = createOidcAdmin({
+        username,
+        passwordHash: hashPassword(createToken()),
+        oidcSubject: userInfo.sub,
+        oidcEmail: userInfo.email,
+      });
+      admin = {
+        id: Number(result.lastInsertRowid),
+        username,
+        passwordHash: "",
+        oidcSubject: userInfo.sub,
+        oidcEmail: userInfo.email,
+        createdAt: new Date().toISOString(),
+      };
+    }
   }
 
   await setSession(admin.id);
+}
+
+function getOidcAdminAllowlist() {
+  return {
+    allowedSubjects: new Set(readCsvEnv("OIDC_ADMIN_ALLOWED_SUBJECTS")),
+    allowedEmails: new Set(readCsvEnv("OIDC_ADMIN_ALLOWED_EMAILS").map((email) => email.toLowerCase())),
+  };
+}
+
+function hasOidcAdminAllowlist() {
+  const { allowedSubjects, allowedEmails } = getOidcAdminAllowlist();
+  return allowedSubjects.size > 0 || allowedEmails.size > 0;
 }
 
 function normalizeUsername(value?: string) {
@@ -184,11 +248,49 @@ function normalizeUsername(value?: string) {
 
 function getExternalBaseUrl(request: Request) {
   const requestUrl = new URL(request.url);
+  const explicitBaseUrl = process.env.APP_BASE_URL;
   const appDomain = process.env.LAZYCAT_APP_DOMAIN;
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const host = appDomain || forwardedHost || request.headers.get("host") || requestUrl.host;
-  const protocol = appDomain || forwardedHost ? "https" : forwardedProto || requestUrl.protocol.replace(/:$/, "");
 
-  return `${protocol}://${host}`;
+  if (explicitBaseUrl) {
+    return normalizeBaseUrl(explicitBaseUrl);
+  }
+
+  if (appDomain) {
+    return normalizeBaseUrl(appDomain.includes("://") ? appDomain : `https://${appDomain}`);
+  }
+
+  if (readBooleanEnv("TRUST_PROXY_HEADERS")) {
+    const allowedHosts = readHostSetEnv("OIDC_ALLOWED_REDIRECT_HOSTS");
+    const forwardedHost = request.headers.get("x-forwarded-host");
+    const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+
+    if (forwardedHost && allowedHosts.has(forwardedHost.toLowerCase())) {
+      return `${forwardedProto === "http" ? "http" : "https"}://${forwardedHost}`;
+    }
+
+    if (forwardedHost) {
+      logSecurityEvent("oidc.denied", { reason: "untrusted-forwarded-host", host: forwardedHost });
+    }
+  }
+
+  return `${requestUrl.protocol.replace(/:$/, "")}://${requestUrl.host}`;
+}
+
+function normalizeBaseUrl(value: string) {
+  const url = new URL(value);
+  return `${url.protocol}//${url.host}`;
+}
+
+export function isAllowedOidcEndpoint(value: string) {
+  try {
+    const url = new URL(value);
+
+    if (url.protocol === "https:") {
+      return true;
+    }
+
+    return process.env.NODE_ENV !== "production" && url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+  } catch {
+    return false;
+  }
 }

@@ -72,6 +72,8 @@ export type AdminUser = {
   id: number;
   username: string;
   passwordHash: string;
+  oidcSubject?: string;
+  oidcEmail?: string;
   createdAt: string;
 };
 

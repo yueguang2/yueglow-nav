@@ -3,6 +3,7 @@
 import { Download, Upload } from "lucide-react";
 import { useRef } from "react";
 import type { Theme } from "@/lib/types";
+import { themeSchema } from "@/lib/validation";
 
 type ThemeExportImportProps = {
   theme?: Theme;
@@ -68,43 +69,37 @@ export function ThemeExportImport({ theme, onImport }: ThemeExportImportProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 64 * 1024) {
+      alert("主题文件过大");
+      return;
+    }
+
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
+      const data = JSON.parse(text) as unknown;
 
       // 验证格式
-      if (!data.version || !data.theme) {
+      if (!data || typeof data !== "object" || !("version" in data) || !("theme" in data)) {
         alert("无效的主题文件格式");
         return;
       }
 
-      if (data.version !== "1.0") {
-        alert(`不支持的版本：${data.version}`);
+      const importData = data as { version?: unknown; theme?: unknown };
+
+      if (importData.version !== "1.0") {
+        alert(`不支持的版本：${String(importData.version)}`);
         return;
       }
 
-      // 验证必需字段
-      const requiredFields = [
-        "name",
-        "slug",
-        "uiStyle",
-        "darkBackground",
-        "darkForeground",
-        "darkAccent",
-        "lightBackground",
-        "lightForeground",
-        "lightAccent",
-      ];
+      const parsed = themeSchema.safeParse(importData.theme);
 
-      for (const field of requiredFields) {
-        if (!data.theme[field]) {
-          alert(`缺少必需字段：${field}`);
-          return;
-        }
+      if (!parsed.success) {
+        alert(parsed.error.issues[0]?.message ?? "主题文件校验失败");
+        return;
       }
 
       // 调用回调
-      onImport(data.theme);
+      onImport(parsed.data);
 
       // 清空 input，允许重复导入同一文件
       event.target.value = "";

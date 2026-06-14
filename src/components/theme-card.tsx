@@ -11,9 +11,10 @@ import type { Theme } from "@/lib/types";
 type ThemeCardProps = {
   theme: Theme;
   returnTo: AdminRoute;
+  csrfToken: string;
 };
 
-export function ThemeCard({ theme, returnTo }: ThemeCardProps) {
+export function ThemeCard({ theme, returnTo, csrfToken }: ThemeCardProps) {
   const isPreset = isBuiltInThemeSlug(theme.slug);
 
   return (
@@ -84,6 +85,7 @@ export function ThemeCard({ theme, returnTo }: ThemeCardProps) {
             </div>
           ) : (
             <form action={activateThemeAction}>
+              <input type="hidden" name="csrfToken" value={csrfToken} />
               <input type="hidden" name="id" value={theme.id} />
               <input type="hidden" name="returnTo" value={returnTo} />
               <ActivateThemeButton />
@@ -96,6 +98,7 @@ export function ThemeCard({ theme, returnTo }: ThemeCardProps) {
               buttonText="删除"
               pendingText="正在删除..."
               buttonClassName={theme.isActive ? "opacity-50" : undefined}
+              csrfToken={csrfToken}
             >
               <input type="hidden" name="id" value={theme.id} />
               <input type="hidden" name="returnTo" value={returnTo} />

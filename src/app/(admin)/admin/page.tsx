@@ -6,10 +6,11 @@ import { updateAdminPasswordAction } from "@/lib/actions";
 import { getActiveUiStyle, getDashboardStats, listCategories, listSites } from "@/lib/db";
 import { isLazycatPasswordlessLoginEnabled } from "@/lib/lazycat";
 import { isOidcEnabled } from "@/lib/oidc";
+import { getCsrfToken } from "@/lib/csrf";
 
 import type { UiStyle } from "@/lib/types";
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
   const stats = getDashboardStats();
   const categories = listCategories({ includeHidden: true });
   const sites = listSites({ includeHidden: true }).slice(0, 8);
@@ -17,6 +18,7 @@ export default function AdminDashboardPage() {
   const passwordlessEnabled = isLazycatPasswordlessLoginEnabled();
   const localPasswordDescription = getLocalPasswordDescription(oidcEnabled, passwordlessEnabled);
   const uiStyle = getActiveUiStyle();
+  const csrfToken = await getCsrfToken();
   const isClassic = uiStyle === "classic";
 
   const statsItems = [
@@ -104,7 +106,7 @@ export default function AdminDashboardPage() {
             <Badge>管理</Badge>
           </div>
           <p className="mt-3 text-sm leading-6 text-tertiary">{localPasswordDescription}</p>
-          <ActionForm action={updateAdminPasswordAction} className="mt-5 grid gap-4 sm:max-w-md">
+          <ActionForm action={updateAdminPasswordAction} csrfToken={csrfToken} className="mt-5 grid gap-4 sm:max-w-md">
             <Field label="新密码" hint="至少 8 个字符">
               <TextInput name="password" type="password" autoComplete={passwordlessEnabled ? "new-password" : "off"} placeholder="请输入新的本地密码" required />
             </Field>

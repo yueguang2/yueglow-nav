@@ -1,4 +1,6 @@
 import type { SiteLink } from "./types";
+import { canServerProbeUrl, classifyUrl } from "./url-security";
+import { logSecurityEvent } from "./security-log";
 
 const timeoutMs = 2500;
 
@@ -14,41 +16,6 @@ type ProbeAttempt = {
   success: boolean;
   elapsed?: number;
 };
-
-function isValidUrl(urlString: string): boolean {
-  try {
-    const url = new URL(urlString);
-
-    if (!["http:", "https:"].includes(url.protocol)) {
-      return false;
-    }
-
-    const hostname = url.hostname.toLowerCase();
-
-    if (hostname === "localhost" || hostname.endsWith(".localhost")) {
-      return false;
-    }
-
-    const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-    const ipv4Match = hostname.match(ipv4Pattern);
-
-    if (ipv4Match) {
-      const octets = ipv4Match.slice(1).map(Number);
-
-      if (octets[0] === 127) return false;
-      if (octets[0] === 169 && octets[1] === 254) return false;
-      if (octets[0] === 0) return false;
-    }
-
-    if (hostname.startsWith("[") && hostname.includes("::1")) {
-      return false;
-    }
-
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function isProbeSuccess(response: Response, allowPartialContent = false) {
   return response.ok || (allowPartialContent && response.status === 206) || (response.status >= 300 && response.status < 400);
@@ -69,7 +36,10 @@ async function fetchProbe(url: string, init: RequestInit, startedAt: number, all
 }
 
 async function probe(link: SiteLink) {
-  if (!isValidUrl(link.url)) {
+  const probeAllowed = await canServerProbeUrl(link.url);
+
+  if (!probeAllowed.ok) {
+    logSecurityEvent("ssrf.blocked", { reason: probeAllowed.reason, url: link.url });
     return undefined;
   }
 
@@ -179,6 +149,16 @@ export async function resolveFastestLinkDetail(siteId: number, links: SiteLink[]
   }
 
   if (enabledLinks.length === 1) {
+    const classified = classifyUrl(enabledLinks[0].url);
+
+    if (!classified.ok) {
+      return {
+        ok: false,
+        source: "none",
+        message: "链接地址不可用",
+      };
+    }
+
     return {
       ok: true,
       url: enabledLinks[0].url,

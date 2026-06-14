@@ -480,6 +480,35 @@ docker compose up -d
 
 如果只备份单个 SQLite 文件，请确保服务已停止，避免遗漏 WAL/SHM 中尚未合并的数据。
 
+## 安全配置
+
+升级前建议先备份 `data/` 目录。数据库迁移会在启动时幂等补列，不会删除现有数据；会话会在登录后自动轮换为哈希存储。
+
+OIDC 部署建议显式配置外部地址和管理员白名单：
+
+```env
+APP_BASE_URL=https://nav.example.com
+LAZYCAT_OIDC_LOGIN_ENABLED=true
+OIDC_ADMIN_ALLOWED_EMAILS=admin@example.com
+# 或使用稳定 subject：
+# OIDC_ADMIN_ALLOWED_SUBJECTS=provider-subject-id
+```
+
+默认不信任 `x-forwarded-host`。只有确实位于可信反代后面时，才启用：
+
+```env
+TRUST_PROXY_HEADERS=true
+OIDC_ALLOWED_REDIRECT_HOSTS=nav.example.com
+```
+
+智能链接保留内网导航能力，但默认不会由服务器主动探测内网地址或未白名单域名，避免 SSRF 风险。需要服务器测速的公网域名可显式加入白名单：
+
+```env
+SMART_LINK_PROBE_ALLOWED_HOSTS=github.com,nextjs.org
+```
+
+如果 OIDC 白名单配置错误导致无法登录，可临时关闭 `LAZYCAT_OIDC_LOGIN_ENABLED`，使用本地管理员账号进入后台后再调整配置。
+
 ## GitHub
 
 当前推荐仓库名：

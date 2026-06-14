@@ -10,6 +10,7 @@ import { SiteLinksEditor } from "@/components/site-links-editor";
 import { deleteSiteAction, saveSiteAction, toggleSitePinAction } from "@/lib/actions";
 import { normalizePageParam, pageHref, parsePage } from "@/lib/admin-routing";
 import { getActiveUiStyle, getSiteById, listCategories, listSitesPage } from "@/lib/db";
+import { getCsrfToken } from "@/lib/csrf";
 import type { Site, UiStyle } from "@/lib/types";
 
 const SITE_PAGE_SIZE = 10;
@@ -51,6 +52,7 @@ async function SitesContent({
   const sites = paginatedSites.items;
   const currentHref = pageHref("/admin/sites", paginatedSites.page);
   const uiStyle = getActiveUiStyle();
+  const csrfToken = await getCsrfToken();
   const isClassic = uiStyle === "classic";
   const editId = Number(params.edit);
   const isEditing = editId > 0;
@@ -113,7 +115,7 @@ async function SitesContent({
           <>
             <div className={isClassic ? "mt-5 grid gap-3" : "grid divide-y divide-[var(--line)]"}>
               {sites.map((site) => (
-                <SiteListItem key={site.id} site={site} currentHref={currentHref} currentPage={paginatedSites.page} uiStyle={uiStyle} />
+                <SiteListItem key={site.id} site={site} currentHref={currentHref} currentPage={paginatedSites.page} uiStyle={uiStyle} csrfToken={csrfToken} />
               ))}
             </div>
             <Pagination basePath="/admin/sites" pagination={paginatedSites} uiStyle={uiStyle} />
@@ -136,7 +138,7 @@ async function SitesContent({
               请先创建至少一个分类，再添加站点。
             </div>
           ) : (
-            <SiteForm site={editingSite} categories={categories} returnTo={currentHref} />
+            <SiteForm site={editingSite} categories={categories} returnTo={currentHref} csrfToken={csrfToken} />
           )}
         </AdminModal>
       )}
@@ -148,13 +150,15 @@ function SiteForm({
   site,
   categories,
   returnTo,
+  csrfToken,
 }: {
   site?: Site;
   categories: ReturnType<typeof listCategories>;
   returnTo: string;
+  csrfToken: string;
 }) {
   return (
-    <ActionForm action={saveSiteAction} className="grid gap-4">
+    <ActionForm action={saveSiteAction} csrfToken={csrfToken} className="grid gap-4">
       <input type="hidden" name="id" value={site?.id ?? 0} />
       <input type="hidden" name="returnTo" value={returnTo} />
       <Field label="所属分类">
@@ -209,11 +213,13 @@ function SiteListItem({
   currentHref,
   currentPage,
   uiStyle,
+  csrfToken,
 }: {
   site: Site;
   currentHref: string;
   currentPage: number;
   uiStyle: UiStyle;
+  csrfToken: string;
 }) {
   const isClassic = uiStyle === "classic";
 
@@ -246,6 +252,7 @@ function SiteListItem({
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <form action={toggleSitePinAction}>
+            <input type="hidden" name="csrfToken" value={csrfToken} />
             <input type="hidden" name="id" value={site.id} />
             <input type="hidden" name="returnTo" value={currentHref} />
             <button
@@ -263,7 +270,7 @@ function SiteListItem({
           >
             编辑
           </a>
-          <ConfirmSubmitForm action={deleteSiteAction} confirmMessage={`确定删除站点「${site.name}」吗？`} buttonText="删除" pendingText="正在删除...">
+          <ConfirmSubmitForm action={deleteSiteAction} confirmMessage={`确定删除站点「${site.name}」吗？`} buttonText="删除" pendingText="正在删除..." csrfToken={csrfToken}>
             <input type="hidden" name="id" value={site.id} />
             <input type="hidden" name="returnTo" value={currentHref} />
           </ConfirmSubmitForm>

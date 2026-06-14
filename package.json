@@ -26,18 +26,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@tailwindcss/postcss": "^4.1.17",
-    "better-sqlite3": "^12.5.0",
+    "@tailwindcss/postcss": "^4.3.1",
+    "better-sqlite3": "^12.10.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
-    "next": "^16.0.7",
-    "react": "^19.2.0",
+    "next": "^16.2.9",
+    "react": "^19.2.7",
     "react-colorful": "^5.7.0",
-    "react-dom": "^19.2.0",
-    "tailwindcss": "^4.1.17",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -46,7 +47,11 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "^16.0.7",
-    "typescript": "^5"
+    "eslint-config-next": "^16.2.9",
+    "typescript": "^5",
+    "vitest": "^4.1.8"
+  },
+  "overrides": {
+    "postcss": "^8.5.15"
   }
 }

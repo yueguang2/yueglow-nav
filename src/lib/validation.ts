@@ -64,15 +64,17 @@ export const emptyActionState: ActionState = {
   message: "",
 };
 
-const hexColorSchema = z
+const rgbChannel = "(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
+const alphaChannel = "(?:0|1|0?\\.\\d+)";
+const rgbColorPattern = new RegExp(`^rgb\\(\\s*${rgbChannel}\\s*,\\s*${rgbChannel}\\s*,\\s*${rgbChannel}\\s*\\)$`);
+const rgbaColorPattern = new RegExp(`^rgba\\(\\s*${rgbChannel}\\s*,\\s*${rgbChannel}\\s*,\\s*${rgbChannel}\\s*,\\s*${alphaChannel}\\s*\\)$`);
+
+export const colorSchema = z
   .string()
   .trim()
-  .regex(/^#[0-9a-fA-F]{6}$/, "请输入有效的颜色值（如 #ffffff）")
-  .or(
-    z
-      .string()
-      .trim()
-      .regex(/^rgba?\([^)]+\)$/, "请输入有效的颜色值（如 rgba(255, 255, 255, 0.5)）")
+  .refine(
+    (value) => /^#[0-9a-fA-F]{6}$/.test(value) || rgbColorPattern.test(value) || rgbaColorPattern.test(value),
+    "请输入有效的颜色值（如 #ffffff 或 rgba(255, 255, 255, 0.5)）",
   );
 
 export const themeSchema = z.object({
@@ -85,22 +87,22 @@ export const themeSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "主题标识符只能包含小写字母、数字和连字符"),
   description: z.string().trim().max(200, "描述不能超过 200 个字符").default(""),
   uiStyle: z.enum(["wechat", "classic", "glass", "minimal"]).default("wechat"),
-  darkBackground: hexColorSchema,
-  darkForeground: hexColorSchema,
-  darkAccent: hexColorSchema,
-  darkAccent2: hexColorSchema,
-  darkPanel: hexColorSchema,
-  darkPanelStrong: hexColorSchema,
-  darkCardBg: hexColorSchema,
-  darkFieldBg: hexColorSchema,
-  lightBackground: hexColorSchema,
-  lightForeground: hexColorSchema,
-  lightAccent: hexColorSchema,
-  lightAccent2: hexColorSchema,
-  lightPanel: hexColorSchema,
-  lightPanelStrong: hexColorSchema,
-  lightCardBg: hexColorSchema,
-  lightFieldBg: hexColorSchema,
+  darkBackground: colorSchema,
+  darkForeground: colorSchema,
+  darkAccent: colorSchema,
+  darkAccent2: colorSchema,
+  darkPanel: colorSchema,
+  darkPanelStrong: colorSchema,
+  darkCardBg: colorSchema,
+  darkFieldBg: colorSchema,
+  lightBackground: colorSchema,
+  lightForeground: colorSchema,
+  lightAccent: colorSchema,
+  lightAccent2: colorSchema,
+  lightPanel: colorSchema,
+  lightPanelStrong: colorSchema,
+  lightCardBg: colorSchema,
+  lightFieldBg: colorSchema,
   useBackdropBlur: z.coerce.boolean().default(false),
   useGradientGlow: z.coerce.boolean().default(false),
   sortOrder: z.coerce.number().int().min(0).max(9999).default(100),

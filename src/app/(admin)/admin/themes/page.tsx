@@ -9,6 +9,7 @@ import { AdminNotice } from "@/components/admin-notice";
 import { AdminModal } from "@/components/admin-drawer";
 import { pageHref } from "@/lib/admin-routing";
 import { getActiveUiStyle, isBuiltInTheme } from "@/lib/db";
+import { getCsrfToken } from "@/lib/csrf";
 
 type ThemesPageProps = {
   searchParams: Promise<{ edit?: string; new?: string; message?: string }>;
@@ -23,6 +24,7 @@ export default async function ThemesPage({ searchParams }: ThemesPageProps) {
   const editingTheme = isEditing ? getThemeById(editId) : undefined;
   const currentHref = pageHref("/admin/themes", 1);
   const uiStyle = getActiveUiStyle();
+  const csrfToken = await getCsrfToken();
   const isClassic = uiStyle === "classic";
 
   if (isEditing && !editingTheme) {
@@ -60,7 +62,7 @@ export default async function ThemesPage({ searchParams }: ThemesPageProps) {
           {themes.length === 0 ? (
             <p className="py-8 text-center text-sm text-faint">暂无主题</p>
           ) : (
-            themes.map((theme) => <ThemeCard key={theme.id} theme={theme} returnTo={currentHref} />)
+            themes.map((theme) => <ThemeCard key={theme.id} theme={theme} returnTo={currentHref} csrfToken={csrfToken} />)
           )}
         </div>
       </section>
@@ -75,7 +77,7 @@ export default async function ThemesPage({ searchParams }: ThemesPageProps) {
           size="lg"
           uiStyle={uiStyle}
         >
-          <ThemeForm theme={editingTheme ?? null} returnTo={currentHref} defaultSlug="custom-theme" />
+          <ThemeForm theme={editingTheme ?? null} returnTo={currentHref} defaultSlug="custom-theme" csrfToken={csrfToken} />
         </AdminModal>
       )}
     </div>

@@ -9,6 +9,7 @@ import { getActiveUiStyle, getAdminCount } from "@/lib/db";
 import { isLazycatPasswordlessLoginEnabled } from "@/lib/lazycat";
 import { isOidcEnabled } from "@/lib/oidc";
 import { loginAction, setupAdminAction } from "@/lib/actions";
+import { getCsrfToken } from "@/lib/csrf";
 
 export default async function LoginPage({
   searchParams,
@@ -31,6 +32,7 @@ export default async function LoginPage({
   const usernameAutoComplete = passwordlessEnabled ? "username" : "off";
   const passwordAutoComplete = passwordlessEnabled ? (needsSetup ? "new-password" : "current-password") : "off";
   const uiStyle = getActiveUiStyle();
+  const csrfToken = await getCsrfToken();
   const isClassic = uiStyle === "classic";
 
   return (
@@ -75,7 +77,7 @@ export default async function LoginPage({
             </a>
           ) : null}
 
-          <ActionForm action={action} autoComplete={formAutoComplete} className="mt-8 grid gap-4">
+          <ActionForm action={action} csrfToken={csrfToken} autoComplete={formAutoComplete} className="mt-8 grid gap-4">
             <Field label="用户名">
               <TextInput name="username" autoComplete={usernameAutoComplete} placeholder="admin" required />
             </Field>

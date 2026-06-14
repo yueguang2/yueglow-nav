@@ -1,4 +1,10 @@
 import type { Theme } from "./types";
+import { colorSchema } from "./validation";
+
+function safeColor(value: string) {
+  const parsed = colorSchema.safeParse(value);
+  return parsed.success ? parsed.data : "#000000";
+}
 
 function styleVars(theme: Theme, mode: "dark" | "light") {
   if (theme.uiStyle === "classic") {
@@ -53,42 +59,61 @@ function styleVars(theme: Theme, mode: "dark" | "light") {
 }
 
 export function generateThemeCSS(theme: Theme): string {
+  const colors = {
+    darkBackground: safeColor(theme.darkBackground),
+    darkForeground: safeColor(theme.darkForeground),
+    darkAccent: safeColor(theme.darkAccent),
+    darkAccent2: safeColor(theme.darkAccent2),
+    darkPanel: safeColor(theme.darkPanel),
+    darkPanelStrong: safeColor(theme.darkPanelStrong),
+    darkCardBg: safeColor(theme.darkCardBg),
+    darkFieldBg: safeColor(theme.darkFieldBg),
+    lightBackground: safeColor(theme.lightBackground),
+    lightForeground: safeColor(theme.lightForeground),
+    lightAccent: safeColor(theme.lightAccent),
+    lightAccent2: safeColor(theme.lightAccent2),
+    lightPanel: safeColor(theme.lightPanel),
+    lightPanelStrong: safeColor(theme.lightPanelStrong),
+    lightCardBg: safeColor(theme.lightCardBg),
+    lightFieldBg: safeColor(theme.lightFieldBg),
+  };
+
   return `
     :root {
-      --background: ${theme.darkBackground};
-      --foreground: ${theme.darkForeground};
-      --muted: color-mix(in srgb, ${theme.darkForeground} 58%, ${theme.darkBackground});
-      --text-secondary: color-mix(in srgb, ${theme.darkForeground} 72%, transparent);
-      --text-tertiary: color-mix(in srgb, ${theme.darkForeground} 52%, transparent);
-      --text-faint: color-mix(in srgb, ${theme.darkForeground} 36%, transparent);
-      --soft-text: color-mix(in srgb, ${theme.darkForeground} 58%, transparent);
-      --accent: ${theme.darkAccent};
-      --accent-2: ${theme.darkAccent2};
-      --panel: ${theme.darkPanel};
-      --panel-strong: ${theme.darkPanelStrong};
-      --card-bg: ${theme.darkCardBg};
-      --field-bg: ${theme.darkFieldBg};
-      --control-bg: ${theme.darkPanel};
+      --background: ${colors.darkBackground};
+      --foreground: ${colors.darkForeground};
+      --muted: color-mix(in srgb, ${colors.darkForeground} 58%, ${colors.darkBackground});
+      --text-secondary: color-mix(in srgb, ${colors.darkForeground} 72%, transparent);
+      --text-tertiary: color-mix(in srgb, ${colors.darkForeground} 52%, transparent);
+      --text-faint: color-mix(in srgb, ${colors.darkForeground} 36%, transparent);
+      --soft-text: color-mix(in srgb, ${colors.darkForeground} 58%, transparent);
+      --accent: ${colors.darkAccent};
+      --accent-2: ${colors.darkAccent2};
+      --panel: ${colors.darkPanel};
+      --panel-strong: ${colors.darkPanelStrong};
+      --card-bg: ${colors.darkCardBg};
+      --field-bg: ${colors.darkFieldBg};
+      --control-bg: ${colors.darkPanel};
       --line: rgba(238, 244, 255, 0.12);
-      --accent-foreground: ${theme.darkBackground};
+      --accent-foreground: ${colors.darkBackground};
       ${styleVars(theme, "dark")}
     }
 
     :root[data-theme="light"] {
-      --background: ${theme.lightBackground};
-      --foreground: ${theme.lightForeground};
-      --muted: color-mix(in srgb, ${theme.lightForeground} 58%, ${theme.lightBackground});
-      --text-secondary: color-mix(in srgb, ${theme.lightForeground} 72%, transparent);
-      --text-tertiary: color-mix(in srgb, ${theme.lightForeground} 52%, transparent);
-      --text-faint: color-mix(in srgb, ${theme.lightForeground} 36%, transparent);
-      --soft-text: color-mix(in srgb, ${theme.lightForeground} 58%, transparent);
-      --accent: ${theme.lightAccent};
-      --accent-2: ${theme.lightAccent2};
-      --panel: ${theme.lightPanel};
-      --panel-strong: ${theme.lightPanelStrong};
-      --card-bg: ${theme.lightCardBg};
-      --field-bg: ${theme.lightFieldBg};
-      --control-bg: ${theme.lightPanel};
+      --background: ${colors.lightBackground};
+      --foreground: ${colors.lightForeground};
+      --muted: color-mix(in srgb, ${colors.lightForeground} 58%, ${colors.lightBackground});
+      --text-secondary: color-mix(in srgb, ${colors.lightForeground} 72%, transparent);
+      --text-tertiary: color-mix(in srgb, ${colors.lightForeground} 52%, transparent);
+      --text-faint: color-mix(in srgb, ${colors.lightForeground} 36%, transparent);
+      --soft-text: color-mix(in srgb, ${colors.lightForeground} 58%, transparent);
+      --accent: ${colors.lightAccent};
+      --accent-2: ${colors.lightAccent2};
+      --panel: ${colors.lightPanel};
+      --panel-strong: ${colors.lightPanelStrong};
+      --card-bg: ${colors.lightCardBg};
+      --field-bg: ${colors.lightFieldBg};
+      --control-bg: ${colors.lightPanel};
       --line: rgba(16, 22, 32, 0.12);
       --accent-foreground: #ffffff;
       ${styleVars(theme, "light")}

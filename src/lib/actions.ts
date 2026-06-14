@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { clearSession, requireAdmin, setSession } from "./auth";
+import { clearOtherSessionsForCurrentAdmin, clearSession, requireAdmin, rotateSession, setSession } from "./auth";
 import { sanitizeReturnTo, withMessage } from "./admin-routing";
 import {
   activateTheme,
   countSitesByCategory,
-  createAdmin,
+  createFirstAdmin,
   createCategory,
   createSite,
   createTheme,
@@ -31,6 +31,9 @@ import {
 } from "./db";
 import { hashPassword, verifyPassword } from "./crypto";
 import { type ActionState, categorySchema, loginSchema, passwordSchema, setupSchema, siteSchema, themeSchema } from "./validation";
+import { verifyCsrfToken } from "./csrf";
+import { checkRateLimit, clearFailedAttempts, getClientRateLimitKey, recordFailedAttempt } from "./rate-limit";
+import { logSecurityEvent } from "./security-log";
 
 function parseCheckbox(formData: FormData, key: string) {
   return formData.has(key);
@@ -78,6 +81,10 @@ export async function setupAdminAction(_state: ActionState, formData: FormData):
     return error("管理员账号已经初始化");
   }
 
+  if (!(await verifyCsrfToken(formData))) {
+    return error("表单已过期，请刷新后重试");
+  }
+
   const parsed = setupSchema.safeParse({
     username: formData.get("username"),
     password: formData.get("password"),
@@ -87,7 +94,20 @@ export async function setupAdminAction(_state: ActionState, formData: FormData):
     return error(parsed.error.issues[0]?.message ?? "初始化失败");
   }
 
-  const result = createAdmin(parsed.data.username, hashPassword(parsed.data.password));
+  const rateLimitKey = await getClientRateLimitKey(parsed.data.username);
+
+  if (!checkRateLimit(rateLimitKey)) {
+    return error("尝试次数过多，请稍后再试");
+  }
+
+  const result = createFirstAdmin(parsed.data.username, hashPassword(parsed.data.password));
+
+  if (!result) {
+    recordFailedAttempt(rateLimitKey);
+    return error("管理员账号已经初始化");
+  }
+
+  clearFailedAttempts(rateLimitKey);
   await setSession(Number(result.lastInsertRowid));
   redirect("/admin");
 }
@@ -102,18 +122,32 @@ export async function loginAction(_state: ActionState, formData: FormData): Prom
     return error(parsed.error.issues[0]?.message ?? "登录失败");
   }
 
+  const rateLimitKey = await getClientRateLimitKey(parsed.data.username);
+
+  if (!checkRateLimit(rateLimitKey)) {
+    return error("尝试次数过多，请稍后再试");
+  }
+
   const admin = getAdminByUsername(parsed.data.username);
 
   if (!admin || !verifyPassword(parsed.data.password, admin.passwordHash)) {
+    recordFailedAttempt(rateLimitKey);
+    logSecurityEvent("auth.login_failed", { username: parsed.data.username });
     return error("用户名或密码错误");
   }
 
+  clearFailedAttempts(rateLimitKey);
   await setSession(admin.id);
   redirect("/admin");
 }
 
 export async function updateAdminPasswordAction(_state: ActionState, formData: FormData): Promise<ActionState> {
   const admin = await requireAdmin();
+
+  if (!(await verifyCsrfToken(formData))) {
+    return error("表单已过期，请刷新后重试");
+  }
+
   const parsed = passwordSchema.safeParse({
     password: formData.get("password"),
   });
@@ -123,16 +157,26 @@ export async function updateAdminPasswordAction(_state: ActionState, formData: F
   }
 
   updateAdminPassword(admin.id, hashPassword(parsed.data.password));
+  await clearOtherSessionsForCurrentAdmin(admin.id);
+  await rotateSession(admin.id);
   return success("本地密码已更新");
 }
 
-export async function logoutAction() {
+export async function logoutAction(formData: FormData) {
+  if (!(await verifyCsrfToken(formData))) {
+    redirect("/admin");
+  }
+
   await clearSession();
   redirect("/admin/login");
 }
 
 export async function saveCategoryAction(_state: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
+
+  if (!(await verifyCsrfToken(formData))) {
+    return error("表单已过期，请刷新后重试");
+  }
 
   const parsed = categorySchema.safeParse({
     name: formData.get("name"),
@@ -170,6 +214,10 @@ export async function saveCategoryAction(_state: ActionState, formData: FormData
 export async function deleteCategoryAction(formData: FormData) {
   await requireAdmin();
 
+  if (!(await verifyCsrfToken(formData))) {
+    redirectBack(formData, "/admin/categories", "csrf-invalid");
+  }
+
   const id = Number(formData.get("id"));
   const category = getCategoryById(id);
 
@@ -189,6 +237,10 @@ export async function deleteCategoryAction(formData: FormData) {
 export async function toggleCategoryPinAction(formData: FormData) {
   await requireAdmin();
 
+  if (!(await verifyCsrfToken(formData))) {
+    redirectBack(formData, "/admin/categories", "csrf-invalid");
+  }
+
   const id = Number(formData.get("id"));
   const category = getCategoryById(id);
 
@@ -203,6 +255,10 @@ export async function toggleCategoryPinAction(formData: FormData) {
 
 export async function saveSiteAction(_state: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
+
+  if (!(await verifyCsrfToken(formData))) {
+    return error("表单已过期，请刷新后重试");
+  }
 
   const parsed = siteSchema.safeParse({
     categoryId: formData.get("categoryId"),
@@ -243,6 +299,10 @@ export async function saveSiteAction(_state: ActionState, formData: FormData): P
 export async function deleteSiteAction(formData: FormData) {
   await requireAdmin();
 
+  if (!(await verifyCsrfToken(formData))) {
+    redirectBack(formData, "/admin/sites", "csrf-invalid");
+  }
+
   const id = Number(formData.get("id"));
   const site = getSiteById(id, { includeHidden: true });
 
@@ -259,6 +319,10 @@ export async function deleteSiteAction(formData: FormData) {
 export async function toggleSitePinAction(formData: FormData) {
   await requireAdmin();
 
+  if (!(await verifyCsrfToken(formData))) {
+    redirectBack(formData, "/admin/sites", "csrf-invalid");
+  }
+
   const id = Number(formData.get("id"));
   const site = getSiteById(id, { includeHidden: true });
 
@@ -273,6 +337,10 @@ export async function toggleSitePinAction(formData: FormData) {
 
 export async function saveThemeAction(_state: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
+
+  if (!(await verifyCsrfToken(formData))) {
+    return error("表单已过期，请刷新后重试");
+  }
 
   const parsed = themeSchema.safeParse({
     name: formData.get("name"),
@@ -344,6 +412,10 @@ export async function saveThemeAction(_state: ActionState, formData: FormData): 
 export async function deleteThemeAction(formData: FormData) {
   await requireAdmin();
 
+  if (!(await verifyCsrfToken(formData))) {
+    redirectBack(formData, "/admin/themes", "csrf-invalid");
+  }
+
   const id = Number(formData.get("id"));
   const theme = getThemeById(id);
 
@@ -370,6 +442,10 @@ export async function deleteThemeAction(formData: FormData) {
 
 export async function activateThemeAction(formData: FormData) {
   await requireAdmin();
+
+  if (!(await verifyCsrfToken(formData))) {
+    redirectBack(formData, "/admin/themes", "csrf-invalid");
+  }
 
   const id = Number(formData.get("id"));
   const theme = getThemeById(id);
