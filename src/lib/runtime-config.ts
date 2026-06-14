@@ -10,6 +10,10 @@ export function readBooleanEnv(name: string, defaultValue = false) {
   return truthyValues.has(value.trim().toLowerCase());
 }
 
+export function isSecureCookieEnabled() {
+  return readBooleanEnv("APP_COOKIE_SECURE", process.env.NODE_ENV === "production");
+}
+
 export function readCsvEnv(name: string) {
   return (process.env[name] ?? "")
     .split(",")

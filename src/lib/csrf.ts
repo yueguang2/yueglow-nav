@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { createToken, hashToken } from "./crypto";
+import { isSecureCookieEnabled } from "./runtime-config";
 import { logSecurityEvent } from "./security-log";
 
 export const csrfFieldName = "csrfToken";
@@ -19,7 +20,7 @@ export async function getCsrfToken() {
   cookieStore.set(csrfCookieName, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecureCookieEnabled(),
     maxAge,
     path: "/",
   });

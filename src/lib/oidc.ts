@@ -3,7 +3,7 @@ import { bindOidcAdmin, createOidcAdmin, getAdminByOidcSubject, getAdminByUserna
 import { setSession } from "./auth";
 import { createToken, hashPassword } from "./crypto";
 import { isLazycatOidcLoginEnabled } from "./lazycat";
-import { readBooleanEnv, readCsvEnv, readHostSetEnv } from "./runtime-config";
+import { isSecureCookieEnabled, readBooleanEnv, readCsvEnv, readHostSetEnv } from "./runtime-config";
 import { logSecurityEvent } from "./security-log";
 
 const stateCookieName = "nav_oidc_state";
@@ -77,7 +77,7 @@ export async function createOidcLoginUrl(request: Request) {
   cookieStore.set(stateCookieName, state, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecureCookieEnabled(),
     maxAge: stateMaxAgeSeconds,
     path: "/",
   });

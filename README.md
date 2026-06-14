@@ -216,6 +216,7 @@ DATA_DIR=/path/to/data npm run start
 | `HOSTNAME` | `0.0.0.0` | 服务监听地址，Docker 内默认监听全部网卡。 |
 | `PORT` | `3000` | HTTP 服务端口。 |
 | `DATA_DIR` | `./data` | SQLite 数据目录，Docker 中默认使用 `/app/data`。 |
+| `APP_COOKIE_SECURE` | `true` | 是否为登录/CSRF Cookie 添加 Secure 标记。公网 HTTPS 保持 `true`；仅内网 HTTP 部署可设为 `false`。 |
 | `NEXT_ALLOWED_DEV_ORIGINS` | `ailab.heiyu.space,192.168.31.177` | 开发环境允许访问 Next dev 资源的 hostname，多个值用英文逗号分隔，不带协议和端口。 |
 | `NEXT_SERVER_ACTION_ALLOWED_ORIGINS` | `ailab.heiyu.space,ailab.heiyu.space:3000,192.168.31.177,192.168.31.177:3000` | 允许提交 Server Actions 的 host，多个值用英文逗号分隔，可带端口。 |
 | `LAZYCAT_OIDC_LOGIN_ENABLED` | `false` | 是否启用后台懒猫/OIDC 登录。只有 `true` / `1` / `yes` / `on` 会启用。 |
@@ -421,6 +422,36 @@ services:
       - ./data:/app/data
 ```
 
+绿联云 NAS 或其他内网 HTTP 部署建议使用 Docker named volume，避免 NAS 目录权限导致 SQLite 无法打开；同时关闭 Secure Cookie：
+
+```yaml
+services:
+  yueglow-nav:
+    image: 2192098715/yueglow-nav:latest
+    container_name: yueglow-nav
+    restart: unless-stopped
+    ports:
+      - "40331:3000"
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      DATA_DIR: /app/data
+      APP_COOKIE_SECURE: "false"
+      LAZYCAT_OIDC_LOGIN_ENABLED: "false"
+      LAZYCAT_PASSWORDLESS_LOGIN_ENABLED: "false"
+    volumes:
+      - yueglow-nav-data:/app/data
+
+volumes:
+  yueglow-nav-data:
+```
+
+内网访问地址示例：
+
+```text
+http://NAS_IP:40331/admin/login
+```
+
 仓库也提供了 `docker-compose.hub.yml`，用于直接使用 Docker Hub 镜像：
 
 ```bash
@@ -539,7 +570,8 @@ git push
 
 - 本项目是单管理员个人导航，当前不提供多用户系统。
 - SQLite 适合个人和轻量自托管场景。
-- 如果部署到公网，建议放在反向代理后面并启用 HTTPS。
+- 如果部署到公网，建议放在反向代理后面并启用 HTTPS，且保持 `APP_COOKIE_SECURE=true`。
+- 仅内网 HTTP 部署时，可以设置 `APP_COOKIE_SECURE=false`，否则浏览器不会保存生产环境的 Secure Cookie。
 - 后台管理员密码使用哈希保存，不保存明文。
 - 首次启动会自动写入一批示例分类和站点，可在后台删除或修改；旧版本站点会自动补齐默认链接。
 - 站点链接优选依赖服务端网络环境，不同服务器到目标站点的测速结果可能不同。

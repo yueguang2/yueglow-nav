@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createToken, hashToken } from "./crypto";
 import { createSession, deleteExpiredSessions, deleteOtherSessions, deleteSession, getAdminById, getSession } from "./db";
+import { isSecureCookieEnabled } from "./runtime-config";
 
 export const sessionCookieName = "nav_session";
 
@@ -19,7 +20,7 @@ export async function setSession(adminId: number) {
   cookieStore.set(sessionCookieName, sessionId, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecureCookieEnabled(),
     expires: expiresAt,
     path: "/",
   });
