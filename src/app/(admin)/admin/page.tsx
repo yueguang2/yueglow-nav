@@ -4,6 +4,7 @@ import { SubmitButton } from "@/components/action-button";
 import { Badge, Field, InitialMark, LinkButton, TextInput } from "@/components/ui";
 import { updateAdminPasswordAction } from "@/lib/actions";
 import { getActiveUiStyle, getDashboardStats, listCategories, listSites } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 import { isLazycatPasswordlessLoginEnabled } from "@/lib/lazycat";
 import { isOidcEnabled } from "@/lib/oidc";
 import { getCsrfToken } from "@/lib/csrf";
@@ -11,6 +12,8 @@ import { getCsrfToken } from "@/lib/csrf";
 import type { UiStyle } from "@/lib/types";
 
 export default async function AdminDashboardPage() {
+  await requireAdmin();
+
   const stats = getDashboardStats();
   const categories = listCategories({ includeHidden: true });
   const sites = listSites({ includeHidden: true }).slice(0, 8);

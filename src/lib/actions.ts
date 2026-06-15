@@ -113,6 +113,10 @@ export async function setupAdminAction(_state: ActionState, formData: FormData):
 }
 
 export async function loginAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await verifyCsrfToken(formData))) {
+    return error("表单已过期，请刷新后重试");
+  }
+
   const parsed = loginSchema.safeParse({
     username: formData.get("username"),
     password: formData.get("password"),

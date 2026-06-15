@@ -24,10 +24,13 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && npm run clean:standalone",
+    "clean:standalone": "node scripts/clean-standalone.mjs",
+    "start": "node .next/standalone/server.js",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "smoke:release": "node scripts/release-smoke.mjs",
+    "verify:release": "npm run lint && npm test && npm run build && npm run smoke:release && npm pack --dry-run"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.1",

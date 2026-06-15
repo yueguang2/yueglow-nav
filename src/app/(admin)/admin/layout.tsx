@@ -1,9 +1,8 @@
 export const dynamic = 'force-dynamic';
 
 import { Compass, LogOut } from "lucide-react";
-import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/actions";
-import { getCurrentAdmin } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { AdminNav } from "@/components/admin-nav";
 import { getActiveUiStyle } from "@/lib/db";
@@ -14,11 +13,8 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const admin = await getCurrentAdmin();
+  const admin = await requireAdmin();
 
-  if (!admin) {
-    redirect("/admin/login");
-  }
   const uiStyle = getActiveUiStyle();
   const csrfToken = await getCsrfToken();
   const isClassic = uiStyle === "classic";

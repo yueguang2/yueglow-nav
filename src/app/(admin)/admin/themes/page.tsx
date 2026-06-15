@@ -8,6 +8,7 @@ import { ThemeForm } from "@/components/theme-form";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminModal } from "@/components/admin-drawer";
 import { pageHref } from "@/lib/admin-routing";
+import { requireAdmin } from "@/lib/auth";
 import { getActiveUiStyle, isBuiltInTheme } from "@/lib/db";
 import { getCsrfToken } from "@/lib/csrf";
 
@@ -16,6 +17,8 @@ type ThemesPageProps = {
 };
 
 export default async function ThemesPage({ searchParams }: ThemesPageProps) {
+  await requireAdmin();
+
   const params = await searchParams;
   const themes = listThemes();
   const editId = Number(params.edit);

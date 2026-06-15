@@ -29,6 +29,7 @@ function unique(values: string[]) {
 const nextConfig: NextConfig = {
   typedRoutes: true,
   output: "standalone",
+  poweredByHeader: false,
   async headers() {
     const csp = [
       "default-src 'self'",

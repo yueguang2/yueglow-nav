@@ -204,6 +204,8 @@ data/nav-site.db
 DATA_DIR=/path/to/data npm run start
 ```
 
+`npm run start` 启动的是 `.next/standalone/server.js`，需要先执行 `npm run build`。
+
 `.gitignore` 已忽略数据库文件和 WAL/SHM 文件，不会把本地数据提交到 Git。
 
 ## 环境变量
@@ -216,6 +218,8 @@ DATA_DIR=/path/to/data npm run start
 | `HOSTNAME` | `0.0.0.0` | 服务监听地址，Docker 内默认监听全部网卡。 |
 | `PORT` | `3000` | HTTP 服务端口。 |
 | `DATA_DIR` | `./data` | SQLite 数据目录，Docker 中默认使用 `/app/data`。 |
+| `APP_SECRET` | 内置默认值 | 应用级签名密钥。正式公网部署建议设置为随机长字符串。 |
+| `CSRF_SECRET` | `APP_SECRET` | CSRF token 签名密钥。正式公网部署建议设置为随机长字符串。 |
 | `APP_COOKIE_SECURE` | `true` | 是否为登录/CSRF Cookie 添加 Secure 标记。公网 HTTPS 保持 `true`；仅内网 HTTP 部署可设为 `false`。 |
 | `NEXT_ALLOWED_DEV_ORIGINS` | `ailab.heiyu.space,192.168.31.177` | 开发环境允许访问 Next dev 资源的 hostname，多个值用英文逗号分隔，不带协议和端口。 |
 | `NEXT_SERVER_ACTION_ALLOWED_ORIGINS` | `ailab.heiyu.space,ailab.heiyu.space:3000,192.168.31.177,192.168.31.177:3000` | 允许提交 Server Actions 的 host，多个值用英文逗号分隔，可带端口。 |
@@ -232,6 +236,8 @@ OIDC 配置读取时优先兼容通用 `OIDC_*` 变量，也兼容懒猫环境�
 
 普通 Node 部署时可以创建 `.env` 文件，也可以直接在启动命令前传入环境变量。
 
+Docker Compose 会读取同目录 `.env` 做变量插值，但容器只会收到 `docker-compose.yml` / `docker-compose.hub.yml` 中明确列出的 `environment` 变量。新增运行时变量时，需要同时更新 Compose 文件。
+
 ## 脚本
 
 ```bash
@@ -244,19 +250,31 @@ npm run dev
 npm run build
 ```
 
-生产构建。
+生产构建，并清理 standalone 产物里误带入的数据目录。
 
 ```bash
 npm run start
 ```
 
-启动生产服务。需要先执行 `npm run build`。
+启动构建后的 standalone 生产服务。需要先执行 `npm run build`。
 
 ```bash
 npm run lint
 ```
 
 运行 ESLint 检查。
+
+```bash
+npm test
+```
+
+运行单元测试。
+
+```bash
+npm run verify:release
+```
+
+执行发布前完整检查：lint、测试、生产构建、standalone smoke test、`npm pack --dry-run`。
 
 ## 生产部署
 
@@ -300,9 +318,11 @@ server {
 生产环境建议：
 
 - 使用强管理员密码。
+- 设置 `APP_SECRET` 和 `CSRF_SECRET`。
 - 定期备份 `DATA_DIR` 目录。
 - 为站点配置 HTTPS。
 - 不要把真实数据库文件提交到 Git。
+- 不要发布 `.next/standalone/data` 或本地 `data/*.db*`。
 
 ## Docker
 
@@ -317,6 +337,8 @@ docker compose up -d --build
 启用懒猫登录和自动填充适配时，可以在同目录 `.env` 中配置：
 
 ```env
+APP_SECRET=change-me-to-a-random-secret
+CSRF_SECRET=change-me-to-another-random-secret
 LAZYCAT_OIDC_LOGIN_ENABLED=true
 LAZYCAT_PASSWORDLESS_LOGIN_ENABLED=true
 ```
@@ -467,6 +489,12 @@ docker compose up -d
 
 ### 维护者推送镜像
 
+发布前先执行：
+
+```bash
+npm run verify:release
+```
+
 发布镜像前先确认代码已经提交，并使用当前提交短哈希作为版本标签：
 
 ```bash
@@ -483,6 +511,20 @@ $GIT_SHA = git rev-parse --short HEAD
 docker build -t 2192098715/yueglow-nav:latest -t "2192098715/yueglow-nav:$GIT_SHA" .
 docker push 2192098715/yueglow-nav:latest
 docker push "2192098715/yueglow-nav:$GIT_SHA"
+```
+
+建议同时保留 Git tag 和镜像哈希标签，便于回滚：
+
+```bash
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+回滚 Docker 部署时，将 compose 镜像标签改回上一版短哈希，再执行：
+
+```bash
+docker compose pull
+docker compose up -d
 ```
 
 ## 备份

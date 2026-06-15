@@ -17,6 +17,7 @@
 /data/*.db-*
 
 # local porting workflow state
+/.claude/
 /.pipeline/
 /node_npm/
 /node_system/

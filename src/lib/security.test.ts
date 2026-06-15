@@ -25,6 +25,7 @@ function testLink(url: string, sortOrder: number): SiteLink {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("url security", () => {
@@ -69,6 +70,27 @@ describe("smart link fallback", () => {
     expect(result.ok).toBe(false);
     expect(result.source).toBe("none");
     expect(result.url).toBeUndefined();
+  });
+
+  it("does not follow probe redirects server-side", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { Location: "http://127.0.0.1:3000/internal" },
+      }),
+    );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await resolveFastestLinkDetail(1, [
+      testLink("https://93.184.216.34/one", 10),
+      testLink("https://93.184.216.34/two", 20),
+    ]);
+
+    expect(result.ok).toBe(true);
+    expect(result.source).toBe("fastest");
+    expect(fetchMock).toHaveBeenCalled();
+    expect(fetchMock.mock.calls.every(([, init]) => init?.redirect === "manual")).toBe(true);
   });
 });
 

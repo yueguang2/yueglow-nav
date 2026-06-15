@@ -8,6 +8,7 @@ import { ConfirmSubmitForm } from "@/components/confirm-submit-form";
 import { Badge, Checkbox, Field, InitialMark, LinkButton, TextInput, Textarea } from "@/components/ui";
 import { deleteCategoryAction, saveCategoryAction, toggleCategoryPinAction } from "@/lib/actions";
 import { normalizePageParam, pageHref, parsePage } from "@/lib/admin-routing";
+import { requireAdmin } from "@/lib/auth";
 import { countSitesByCategory, getActiveUiStyle, getCategoryById, listCategoriesPage } from "@/lib/db";
 import { getCsrfToken } from "@/lib/csrf";
 import type { Category, UiStyle } from "@/lib/types";
@@ -34,6 +35,8 @@ async function CategoriesContent({
 }: {
   searchParams: Promise<CategoriesPageSearchParams>;
 }) {
+  await requireAdmin();
+
   const params = await searchParams;
   const requestedPage = parsePage(params.page);
   const paginatedCategories = listCategoriesPage({ includeHidden: true, page: requestedPage, pageSize: CATEGORY_PAGE_SIZE });

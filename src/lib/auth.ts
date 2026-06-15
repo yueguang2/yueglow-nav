@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { createToken, hashToken } from "./crypto";
 import { createSession, deleteExpiredSessions, deleteOtherSessions, deleteSession, getAdminById, getSession } from "./db";
 import { isSecureCookieEnabled } from "./runtime-config";
+import { sessionCookieName } from "./auth-constants";
 
-export const sessionCookieName = "nav_session";
+export { sessionCookieName };
 
 const sessionDurationMs = 1000 * 60 * 60 * 24 * 7;
 

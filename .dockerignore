@@ -19,7 +19,10 @@ build
 # Development
 .git
 .gitignore
-.env*.local
+.claude
+.env
+.env.*
+!.env.example
 .vscode
 .idea
 *.swp

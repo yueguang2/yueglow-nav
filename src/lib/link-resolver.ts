@@ -60,7 +60,7 @@ async function probe(link: SiteLink) {
         {
           method: "HEAD",
           cache: "no-store",
-          redirect: "follow",
+          redirect: "manual",
           signal: headController.signal,
         },
         startedAt,
@@ -70,7 +70,7 @@ async function probe(link: SiteLink) {
         {
           method: "GET",
           cache: "no-store",
-          redirect: "follow",
+          redirect: "manual",
           signal: getController.signal,
           headers: {
             Range: "bytes=0-0",

@@ -9,6 +9,7 @@ import { Badge, Checkbox, Field, InitialMark, LinkButton, Select, TextInput, Tex
 import { SiteLinksEditor } from "@/components/site-links-editor";
 import { deleteSiteAction, saveSiteAction, toggleSitePinAction } from "@/lib/actions";
 import { normalizePageParam, pageHref, parsePage } from "@/lib/admin-routing";
+import { requireAdmin } from "@/lib/auth";
 import { getActiveUiStyle, getSiteById, listCategories, listSitesPage } from "@/lib/db";
 import { getCsrfToken } from "@/lib/csrf";
 import type { Site, UiStyle } from "@/lib/types";
@@ -35,6 +36,8 @@ async function SitesContent({
 }: {
   searchParams: Promise<SitesPageSearchParams>;
 }) {
+  await requireAdmin();
+
   const params = await searchParams;
   const categories = listCategories({ includeHidden: true });
   const requestedPage = parsePage(params.page);
